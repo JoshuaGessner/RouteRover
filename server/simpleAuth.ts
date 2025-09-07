@@ -26,7 +26,7 @@ export function getSession() {
   
   return session({
     store: new PgSession({
-      connectionString: process.env.DATABASE_URL,
+      conString: process.env.DATABASE_URL,
       tableName: 'sessions'
     }),
     secret: sessionSecret,
@@ -60,7 +60,7 @@ export async function setupAuth(app: Express) {
       }
 
       // Verify password
-      const isValid = await bcrypt.compare(password, user.passwordHash);
+      const isValid = await bcrypt.compare(password, user.passwordHash || '');
       if (!isValid) {
         return res.status(401).json({ message: "Invalid credentials" });
       }
@@ -98,7 +98,7 @@ export async function setupAuth(app: Express) {
       const hashedPassword = await bcrypt.hash(password, 10);
       const user = await storage.createUser({
         username,
-        email,
+        email: email || null,
         passwordHash: hashedPassword
       });
 
@@ -138,7 +138,7 @@ export const isAuthenticated: RequestHandler = async (req, res, next) => {
       return res.status(401).json({ message: "User not found" });
     }
     
-    req.user = { id: user.id, username: user.username, email: user.email };
+    req.user = { id: user.id, username: user.username, email: user.email || '' };
     next();
   } catch (error) {
     console.error('Auth check error:', error);
