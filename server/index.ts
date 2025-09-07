@@ -49,13 +49,8 @@ app.use((req, res, next) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
 
-    // Only send response if headers haven't been sent yet
-    if (!res.headersSent) {
-      res.status(status).json({ message });
-    }
-    
-    // Log error but don't re-throw (prevents crash)
-    console.error('Express error:', err);
+    res.status(status).json({ message });
+    throw err;
   });
 
   // importantly only setup vite in development and after
