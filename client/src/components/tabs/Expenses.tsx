@@ -82,9 +82,9 @@ export function ExpensesTab() {
     createExpenseMutation.mutate({
       amount: parseFloat(amount),
       category,
-      merchant,
-      notes,
-      date: new Date(),
+      merchant: merchant || null,
+      notes: notes || null,
+      date: new Date().toISOString(),
     });
   };
 
@@ -466,7 +466,12 @@ export function ExpensesTab() {
         <CardContent className="p-0">
           <div className="p-6 border-b border-border flex items-center justify-between">
             <h3 className="text-lg font-semibold">Recent Expenses</h3>
-            <Button variant="ghost" size="sm" data-testid="view-all-expenses">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => window.location.hash = '#expenses'}
+              data-testid="view-all-expenses"
+            >
               View All
             </Button>
           </div>

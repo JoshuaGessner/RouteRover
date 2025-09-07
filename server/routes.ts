@@ -282,11 +282,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/expenses", async (req, res) => {
     try {
       const userId = getCurrentUserId(req);
-      const validatedData = insertExpenseSchema.parse({ ...req.body, userId });
+      const expenseData = {
+        ...req.body,
+        userId,
+        date: new Date(req.body.date)
+      };
+      const validatedData = insertExpenseSchema.parse(expenseData);
       const expense = await storage.createExpense(validatedData);
       res.json(expense);
     } catch (error) {
-      res.status(400).json({ message: "Invalid expense data" });
+      console.error('Expense validation error:', error);
+      res.status(400).json({ message: "Invalid expense data", error: error.message });
     }
   });
 
