@@ -448,7 +448,7 @@ class MemStorage implements IStorage {
       id,
       username: userData.username,
       email: userData.email || null,
-      password: userData.password,
+      passwordHash: userData.passwordHash,
       firstName: userData.firstName || null,
       lastName: userData.lastName || null,
       createdAt: new Date(),
@@ -471,7 +471,7 @@ class MemStorage implements IStorage {
         id, 
         username: userData.username!,
         email: userData.email ?? null,
-        password: userData.password!,
+        passwordHash: userData.passwordHash!,
         firstName: userData.firstName ?? null,
         lastName: userData.lastName ?? null,
         createdAt: new Date(), 
@@ -621,7 +621,7 @@ class MemStorage implements IStorage {
       userId: insertEntry.userId || null,
       date: insertEntry.date,
       startAddress: insertEntry.startAddress,
-      endAddress: insertEntry.endAddress,
+      endAddress: insertEntry.endAddress ?? null,
       notes: insertEntry.notes ?? null,
       calculatedDistance: insertEntry.calculatedDistance ?? null,
       calculatedAmount: insertEntry.calculatedAmount ?? null,
@@ -745,7 +745,7 @@ class MemStorage implements IStorage {
       const id = randomUUID();
       const newUsage: ApiUsage = {
         id,
-        userId: insertUsage.userId,
+        userId: insertUsage.userId ?? null,
         apiProvider: insertUsage.apiProvider,
         endpoint: insertUsage.endpoint,
         callCount: insertUsage.callCount || 1,
@@ -785,7 +785,7 @@ class MemStorage implements IStorage {
     const id = randomUUID();
     const rate: YearlyRate = {
       id,
-      userId: insertRate.userId,
+      userId: insertRate.userId ?? null,
       year: insertRate.year,
       mileageRate: insertRate.mileageRate,
       effectiveDate: insertRate.effectiveDate || null,
