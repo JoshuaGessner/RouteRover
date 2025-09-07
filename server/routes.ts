@@ -5,7 +5,7 @@ import { setupAuth, isAuthenticated } from "./auth";
 import { insertTripSchema, insertExpenseSchema, insertReceiptSchema, insertScheduleEntrySchema, insertAppSettingsSchema, insertErrorLogSchema } from "@shared/schema";
 import multer from "multer";
 import Tesseract from "tesseract.js";
-import * as XLSX from "xlsx";
+import XLSX from "xlsx";
 import { parse } from "csv-parse/sync";
 import fs from "fs";
 import path from "path";
