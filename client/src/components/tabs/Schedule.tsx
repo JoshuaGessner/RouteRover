@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Upload, FileText, Table, CheckCircle, AlertCircle, Bed, MapPin, HelpCircle } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import type { ScheduleEntry, AppSettings } from "@shared/schema";
@@ -13,7 +14,6 @@ export function ScheduleTab() {
   const [importData, setImportData] = useState<any>(null);
   const [processing, setProcessing] = useState(false);
   const [processProgress, setProcessProgress] = useState(0);
-  const [showHelp, setShowHelp] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -119,67 +119,7 @@ export function ScheduleTab() {
       {/* File Import */}
       <Card data-testid="file-import">
         <CardContent className="pt-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold">Import Schedule</h3>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => setShowHelp(!showHelp)}
-              data-testid="help-button"
-            >
-              <HelpCircle className="w-4 h-4 mr-2" />
-              {showHelp ? 'Hide Help' : 'Show Help'}
-            </Button>
-          </div>
-
-          {/* Help Content */}
-          {showHelp && (
-            <div className="mb-6 border rounded-lg p-4 bg-muted/20">
-              <h4 className="font-semibold text-sm mb-3">📋 Required Spreadsheet Headers</h4>
-              <p className="text-xs text-muted-foreground mb-4">
-                Your spreadsheet must contain these minimum headers for route calculations to work properly:
-              </p>
-              
-              <div className="space-y-3">
-                {/* Required Headers */}
-                <div>
-                  <h5 className="font-semibold text-xs mb-2 text-green-600">✅ Required Headers</h5>
-                  <ul className="text-xs space-y-1 ml-4">
-                    <li><strong>Date</strong> - Trip date (MM/DD/YYYY format)</li>
-                    <li><strong>Start</strong> - Starting location or address</li>
-                    <li><strong>End</strong> - Destination or end location</li>
-                  </ul>
-                </div>
-
-                {/* Example */}
-                <div>
-                  <h5 className="font-semibold text-xs mb-2">📊 Example Layout</h5>
-                  <div className="border rounded overflow-hidden text-xs">
-                    <table className="w-full">
-                      <thead className="bg-muted">
-                        <tr>
-                          <th className="p-2 text-left font-medium">Date</th>
-                          <th className="p-2 text-left font-medium">Start</th>
-                          <th className="p-2 text-left font-medium">End</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr className="border-t">
-                          <td className="p-2">01/15/2024</td>
-                          <td className="p-2">123 Main St, City</td>
-                          <td className="p-2">456 Oak Ave, Town</td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                  
-                  <div className="mt-2 text-xs text-muted-foreground">
-                    💡 <strong>Tip:</strong> Header names are flexible (e.g., "Date", "Trip Date", "Start Address", "From", etc.)
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
+          <h3 className="text-lg font-semibold mb-4">Import Schedule</h3>
           
           <div className="space-y-4">
             <div className="w-full h-32 border-2 border-dashed border-border rounded-lg flex items-center justify-center bg-muted/50 relative">
@@ -195,6 +135,108 @@ export function ScheduleTab() {
                 <p className="text-sm text-muted-foreground">Drop CSV, Excel, or TXT files here</p>
                 <p className="text-xs text-muted-foreground mt-1">or click to browse</p>
               </div>
+            </div>
+
+            {/* Help Button - Right after file upload box */}
+            <div className="flex justify-center">
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button variant="outline" className="w-full max-w-sm" data-testid="help-button">
+                    <HelpCircle className="w-4 h-4 mr-2" />
+                    Need Help? View Required Spreadsheet Format
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl">
+                  <DialogHeader>
+                    <DialogTitle>Required Spreadsheet Headers</DialogTitle>
+                    <DialogDescription>
+                      Your spreadsheet must contain these minimum headers for route calculations to work properly.
+                    </DialogDescription>
+                  </DialogHeader>
+                  
+                  <div className="space-y-6 mt-4">
+                    {/* Required Headers */}
+                    <div>
+                      <h4 className="font-semibold text-sm mb-3 text-accent">✅ Required Headers</h4>
+                      <div className="grid grid-cols-1 gap-3">
+                        <div className="flex items-center justify-between p-3 bg-accent/5 border border-accent/20 rounded-lg">
+                          <div>
+                            <div className="font-medium text-sm">Date</div>
+                            <div className="text-xs text-muted-foreground">Trip date (MM/DD/YYYY format)</div>
+                          </div>
+                          <Badge variant="secondary" className="bg-accent/10 text-accent font-mono text-xs">Date</Badge>
+                        </div>
+                        
+                        <div className="flex items-center justify-between p-3 bg-accent/5 border border-accent/20 rounded-lg">
+                          <div>
+                            <div className="font-medium text-sm">Start Address</div>
+                            <div className="text-xs text-muted-foreground">Starting location or address</div>
+                          </div>
+                          <Badge variant="secondary" className="bg-accent/10 text-accent font-mono text-xs">Start</Badge>
+                        </div>
+                        
+                        <div className="flex items-center justify-between p-3 bg-accent/5 border border-accent/20 rounded-lg">
+                          <div>
+                            <div className="font-medium text-sm">End Address</div>
+                            <div className="text-xs text-muted-foreground">Destination or end location</div>
+                          </div>
+                          <Badge variant="secondary" className="bg-accent/10 text-accent font-mono text-xs">End</Badge>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Optional Headers */}
+                    <div>
+                      <h4 className="font-semibold text-sm mb-3 text-muted-foreground">📋 Optional Headers</h4>
+                      <div className="grid grid-cols-1 gap-2">
+                        <div className="flex items-center justify-between p-2 bg-muted/50 rounded">
+                          <span className="text-sm">Purpose/Description</span>
+                          <Badge variant="outline" className="font-mono text-xs">Purpose</Badge>
+                        </div>
+                        <div className="flex items-center justify-between p-2 bg-muted/50 rounded">
+                          <span className="text-sm">Client/Customer Name</span>
+                          <Badge variant="outline" className="font-mono text-xs">Client</Badge>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Example Table */}
+                    <div>
+                      <h4 className="font-semibold text-sm mb-3">📊 Example Spreadsheet Layout</h4>
+                      <div className="border rounded-lg overflow-hidden">
+                        <table className="w-full text-xs">
+                          <thead className="bg-muted">
+                            <tr>
+                              <th className="p-2 text-left font-medium">Date</th>
+                              <th className="p-2 text-left font-medium">Start</th>
+                              <th className="p-2 text-left font-medium">End</th>
+                              <th className="p-2 text-left font-medium">Purpose</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr className="border-t">
+                              <td className="p-2">01/15/2024</td>
+                              <td className="p-2">123 Main St, City</td>
+                              <td className="p-2">456 Oak Ave, Town</td>
+                              <td className="p-2">Client Meeting</td>
+                            </tr>
+                            <tr className="border-t bg-muted/30">
+                              <td className="p-2">01/16/2024</td>
+                              <td className="p-2">Home Office</td>
+                              <td className="p-2">Downtown Conference Center</td>
+                              <td className="p-2">Business Conference</td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                      
+                      <div className="mt-3 text-xs text-muted-foreground">
+                        💡 <strong>Tip:</strong> The system automatically detects column headers and maps them to the correct fields. Header names are flexible (e.g., "Date", "Trip Date", "Start Address", "From", etc.)
+                      </div>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
             </div>
             
             <div className="grid grid-cols-3 gap-2">
