@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Save, Camera, Image, Fuel, Utensils, Car, Eye, Edit2, Trash2, X } from "lucide-react";
 import { useCamera } from "@/hooks/useCamera";
 import { apiRequest } from "@/lib/queryClient";
+import { localImageStorage } from "@/lib/localImageStorage";
 import type { Expense } from "@shared/schema";
 
 export function ExpensesTab() {
@@ -192,10 +193,19 @@ export function ExpensesTab() {
     setUploadSuccess(false);
     
     try {
+      // Generate unique receipt ID
+      const receiptId = `receipt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
+      // Store image locally in IndexedDB
+      await localImageStorage.storeImage(receiptId, imageFile);
+      
+      // Send image to server for OCR processing only (not storage)
       const formData = new FormData();
       formData.append('image', imageFile);
+      formData.append('receiptId', receiptId);
+      formData.append('localOnly', 'true'); // Flag to indicate local storage mode
       
-      const response = await fetch('/api/receipts', {
+      const response = await fetch('/api/receipts/process-ocr', {
         method: 'POST',
         body: formData,
       });
@@ -229,8 +239,13 @@ export function ExpensesTab() {
         // Clear success message after 5 seconds
         setTimeout(() => setUploadSuccess(false), 5000);
       } else {
-        throw new Error('Upload failed');
+        // If OCR processing fails, still keep the image stored locally
+        console.warn('OCR processing failed, but image is stored locally');
+        throw new Error('OCR processing failed');
       }
+    } catch (error) {
+      console.error('Failed to process receipt:', error);
+      alert('Failed to process receipt. Please try again.');
     } finally {
       setIsUploading(false);
     }
