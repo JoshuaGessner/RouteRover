@@ -373,7 +373,7 @@ class MemStorage implements IStorage {
       startTime: insertTrip.startTime,
       endTime: insertTrip.endTime ?? null,
       distance: insertTrip.distance ?? null,
-      purpose: insertTrip.purpose,
+      purpose: insertTrip.purpose ?? "business",
       notes: insertTrip.notes ?? null,
       isActive: insertTrip.isActive ?? null,
       autoDetected: insertTrip.autoDetected ?? null
