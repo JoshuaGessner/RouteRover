@@ -72,7 +72,21 @@ export function useCamera() {
       return file;
     } catch (error) {
       console.error('Camera capture failed:', error);
-      setError(error instanceof Error ? error.message : 'Camera access failed');
+      let errorMessage = 'Camera access failed';
+      
+      if (error instanceof Error) {
+        if (error.name === 'NotAllowedError') {
+          errorMessage = 'Camera permission denied. Please allow camera access in your browser settings.';
+        } else if (error.name === 'NotFoundError') {
+          errorMessage = 'No camera found on this device.';
+        } else if (error.name === 'NotSupportedError') {
+          errorMessage = 'Camera not supported on this device.';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
+      setError(errorMessage);
       return null;
     } finally {
       setIsCapturing(false);
@@ -85,7 +99,7 @@ export function useCamera() {
         const input = document.createElement('input');
         input.type = 'file';
         input.accept = 'image/*';
-        input.capture = 'environment';
+        // Remove capture attribute to open gallery, not camera
         input.onchange = (e) => {
           const target = e.target as HTMLInputElement;
           const file = target.files?.[0] || null;
