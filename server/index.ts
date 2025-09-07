@@ -1,6 +1,25 @@
-// Load environment variables from .env file
-import dotenv from 'dotenv';
-dotenv.config();
+// Load environment variables from .env file if it exists
+import fs from 'fs';
+
+if (fs.existsSync('.env')) {
+  try {
+    const envContent = fs.readFileSync('.env', 'utf8');
+    envContent.split('\n').forEach(line => {
+      line = line.trim();
+      if (line && !line.startsWith('#')) {
+        const [key, ...valueParts] = line.split('=');
+        if (key && valueParts.length > 0) {
+          const value = valueParts.join('=').replace(/^["']|["']$/g, '');
+          if (!process.env[key.trim()]) {
+            process.env[key.trim()] = value;
+          }
+        }
+      }
+    });
+  } catch (error) {
+    // Silently continue if .env loading fails
+  }
+}
 
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
