@@ -1,0 +1,128 @@
+import { sql } from "drizzle-orm";
+import { pgTable, text, varchar, real, timestamp, boolean, jsonb } from "drizzle-orm/pg-core";
+import { createInsertSchema } from "drizzle-zod";
+import { z } from "zod";
+
+export const users = pgTable("users", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  username: text("username").notNull().unique(),
+  password: text("password").notNull(),
+});
+
+export const trips = pgTable("trips", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id),
+  startLocation: jsonb("start_location").notNull(),
+  endLocation: jsonb("end_location"),
+  startTime: timestamp("start_time").notNull(),
+  endTime: timestamp("end_time"),
+  distance: real("distance"),
+  purpose: text("purpose").notNull().default("business"),
+  notes: text("notes"),
+  isActive: boolean("is_active").default(true),
+  autoDetected: boolean("auto_detected").default(false),
+});
+
+export const expenses = pgTable("expenses", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id),
+  tripId: varchar("trip_id").references(() => trips.id),
+  amount: real("amount").notNull(),
+  category: text("category").notNull(),
+  merchant: text("merchant"),
+  date: timestamp("date").notNull(),
+  notes: text("notes"),
+  receiptId: varchar("receipt_id"),
+});
+
+export const receipts = pgTable("receipts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id),
+  expenseId: varchar("expense_id").references(() => expenses.id),
+  imageUrl: text("image_url").notNull(),
+  ocrText: text("ocr_text"),
+  extractedData: jsonb("extracted_data"),
+  uploadDate: timestamp("upload_date").notNull(),
+});
+
+export const scheduleEntries = pgTable("schedule_entries", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id),
+  date: timestamp("date").notNull(),
+  startAddress: text("start_address").notNull(),
+  endAddress: text("end_address").notNull(),
+  notes: text("notes"),
+  calculatedDistance: real("calculated_distance"),
+  calculatedAmount: real("calculated_amount"),
+  isHotelStay: boolean("is_hotel_stay").default(false),
+  processingStatus: text("processing_status").default("pending"), // pending, calculated, error
+  errorMessage: text("error_message"),
+  originalData: jsonb("original_data"),
+});
+
+export const appSettings = pgTable("app_settings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id),
+  googleApiKey: text("google_api_key"),
+  mileageRate: real("mileage_rate").default(0.655),
+  autoDetectionEnabled: boolean("auto_detection_enabled").default(true),
+  detectionSensitivity: real("detection_sensitivity").default(3),
+  darkMode: boolean("dark_mode").default(false),
+  pushNotifications: boolean("push_notifications").default(true),
+  autoBackup: boolean("auto_backup").default(true),
+});
+
+export const errorLogs = pgTable("error_logs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id),
+  errorType: text("error_type").notNull(),
+  errorMessage: text("error_message").notNull(),
+  context: jsonb("context"),
+  timestamp: timestamp("timestamp").notNull(),
+});
+
+// Insert schemas
+export const insertUserSchema = createInsertSchema(users).pick({
+  username: true,
+  password: true,
+});
+
+export const insertTripSchema = createInsertSchema(trips).omit({
+  id: true,
+});
+
+export const insertExpenseSchema = createInsertSchema(expenses).omit({
+  id: true,
+});
+
+export const insertReceiptSchema = createInsertSchema(receipts).omit({
+  id: true,
+});
+
+export const insertScheduleEntrySchema = createInsertSchema(scheduleEntries).omit({
+  id: true,
+});
+
+export const insertAppSettingsSchema = createInsertSchema(appSettings).omit({
+  id: true,
+});
+
+export const insertErrorLogSchema = createInsertSchema(errorLogs).omit({
+  id: true,
+});
+
+// Types
+export type InsertUser = z.infer<typeof insertUserSchema>;
+export type User = typeof users.$inferSelect;
+export type InsertTrip = z.infer<typeof insertTripSchema>;
+export type Trip = typeof trips.$inferSelect;
+export type InsertExpense = z.infer<typeof insertExpenseSchema>;
+export type Expense = typeof expenses.$inferSelect;
+export type InsertReceipt = z.infer<typeof insertReceiptSchema>;
+export type Receipt = typeof receipts.$inferSelect;
+export type InsertScheduleEntry = z.infer<typeof insertScheduleEntrySchema>;
+export type ScheduleEntry = typeof scheduleEntries.$inferSelect;
+export type InsertAppSettings = z.infer<typeof insertAppSettingsSchema>;
+export type AppSettings = typeof appSettings.$inferSelect;
+export type InsertErrorLog = z.infer<typeof insertErrorLogSchema>;
+export type ErrorLog = typeof errorLogs.$inferSelect;
