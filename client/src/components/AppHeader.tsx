@@ -8,7 +8,7 @@ export function AppHeader() {
   return (
     <header className="bg-card border-b border-border sticky top-0 z-40" data-testid="app-header">
       <div className="flex items-center justify-between p-4">
-        <h1 className="text-xl font-semibold text-foreground">MileTracker Pro</h1>
+        <h1 className="text-xl font-semibold text-foreground">Route Rover</h1>
         <div className="flex items-center gap-3">
           {/* GPS Status Indicator */}
           <div className="flex items-center gap-2" data-testid="gps-status">
