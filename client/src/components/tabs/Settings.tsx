@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -29,11 +29,13 @@ export function SettingsTab() {
     queryKey: ["/api/settings"],
   });
 
-  // Update form data when settings are loaded
-  if (settings && settings.googleApiKey !== apiKey) {
-    setApiKey(settings.googleApiKey || "");
-    setMileageRate(settings.mileageRate?.toString() || "0.655");
-  }
+  // Update form data when settings are loaded - using useEffect instead of render-time logic
+  useEffect(() => {
+    if (settings) {
+      setApiKey(settings.googleApiKey || "");
+      setMileageRate(settings.mileageRate?.toString() || "0.655");
+    }
+  }, [settings]);
 
   const { data: errorLogs = [] } = useQuery<any[]>({
     queryKey: ["/api/error-logs"],
