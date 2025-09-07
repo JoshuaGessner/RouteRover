@@ -32,27 +32,47 @@ export function DashboardTab() {
 
   const handleExportData = async () => {
     try {
+      console.log('Starting routes export...');
       const response = await fetch('/api/export/routes', {
         method: 'GET',
-        credentials: 'include'
+        credentials: 'include',
+        headers: {
+          'Accept': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        }
       });
       
+      console.log('Export response status:', response.status);
+      
       if (!response.ok) {
-        throw new Error('Export failed');
+        throw new Error(`Export failed with status ${response.status}`);
       }
       
       const blob = await response.blob();
+      console.log('Blob created, size:', blob.size, 'type:', blob.type);
+      
+      if (blob.size === 0) {
+        throw new Error('Received empty file');
+      }
+      
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
+      a.style.display = 'none';
       a.href = url;
       a.download = `route-rover-routes-report-${new Date().toISOString().slice(0, 10)}.xlsx`;
+      
       document.body.appendChild(a);
       a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+      
+      // Clean up after a short delay
+      setTimeout(() => {
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      }, 100);
+      
+      console.log('Export completed successfully');
     } catch (error) {
       console.error('Export failed:', error);
-      alert('Failed to export routes data. Please try again.');
+      alert(`Failed to export routes data: ${error.message}`);
     }
   };
 
