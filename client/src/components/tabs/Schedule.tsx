@@ -50,6 +50,11 @@ export function ScheduleTab() {
       setProcessing(false);
       setProcessProgress(0);
     },
+    onError: (error: any) => {
+      setProcessing(false);
+      setProcessProgress(0);
+      // Keep importData so user can see what was uploaded
+    },
   });
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -208,17 +213,52 @@ export function ScheduleTab() {
           <div className="p-6 border-b border-border flex items-center justify-between">
             <h3 className="text-lg font-semibold">Schedule Preview</h3>
             {importData && !processing && (
-              <Button 
-                onClick={handleProcessSchedule}
-                disabled={processMutation.isPending}
-                data-testid="process-schedule"
-              >
-                Process Schedule
-              </Button>
+              <div className="flex items-center gap-3">
+                {!settings?.googleApiKey ? (
+                  <div className="flex flex-col">
+                    <Badge variant="destructive" className="mb-2">Google API Key Required</Badge>
+                    <p className="text-xs text-muted-foreground">Set up your API key in Settings to calculate routes</p>
+                  </div>
+                ) : (
+                  <Button 
+                    onClick={handleProcessSchedule}
+                    disabled={processMutation.isPending}
+                    data-testid="process-schedule"
+                  >
+                    Process Schedule
+                  </Button>
+                )}
+              </div>
             )}
           </div>
           <div className="divide-y divide-border">
-            {scheduleEntries.length > 0 ? (
+            {/* Show imported data first, even before processing */}
+            {importData && importData.data ? (
+              importData.data.slice(0, 10).map((row: any, index: number) => (
+                <div key={`import-${index}`} className="p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-medium">
+                      {importData.headerMapping.date ? row[importData.headerMapping.date] : `Row ${index + 1}`}
+                    </span>
+                    <Badge variant="outline">Imported</Badge>
+                  </div>
+                  <div className="text-sm text-muted-foreground mb-1 flex items-center gap-2">
+                    <MapPin className="w-4 h-4" />
+                    {importData.headerMapping.startAddress ? row[importData.headerMapping.startAddress] : 'Start'} → {importData.headerMapping.endAddress ? row[importData.headerMapping.endAddress] : 'End'}
+                  </div>
+                  {importData.headerMapping.notes && row[importData.headerMapping.notes] && (
+                    <div className="text-xs text-muted-foreground mt-1">
+                      Note: {row[importData.headerMapping.notes]}
+                    </div>
+                  )}
+                  {processMutation.error && (
+                    <div className="text-xs text-destructive mt-2">
+                      Processing failed: {processMutation.error.message === 'Google API key not configured' ? 'Please set up your Google API key in Settings first' : processMutation.error.message}
+                    </div>
+                  )}
+                </div>
+              ))
+            ) : scheduleEntries.length > 0 ? (
               scheduleEntries.slice(0, 10).map((entry) => (
                 <div key={entry.id} className="p-4">
                   <div className="flex items-center justify-between mb-2">
