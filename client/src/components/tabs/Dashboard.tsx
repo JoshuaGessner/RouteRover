@@ -3,31 +3,32 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { MapPin, Clock, DollarSign } from "lucide-react";
+import type { Trip, Expense } from "@shared/schema";
 
 export function DashboardTab() {
-  const { data: trips = [] } = useQuery({
+  const { data: trips = [] } = useQuery<Trip[]>({
     queryKey: ["/api/trips"],
   });
 
-  const { data: expenses = [] } = useQuery({
+  const { data: expenses = [] } = useQuery<Expense[]>({
     queryKey: ["/api/expenses"],
   });
 
-  const { data: activeTrip } = useQuery({
+  const { data: activeTrip } = useQuery<Trip | null>({
     queryKey: ["/api/trips/active"],
   });
 
   // Calculate today's summary
   const today = new Date().toDateString();
-  const todayTrips = trips.filter((trip: any) => 
+  const todayTrips = trips.filter((trip) => 
     new Date(trip.startTime).toDateString() === today
   );
-  const todayExpenses = expenses.filter((expense: any) => 
+  const todayExpenses = expenses.filter((expense) => 
     new Date(expense.date).toDateString() === today
   );
 
-  const totalMiles = todayTrips.reduce((sum: number, trip: any) => sum + (trip.distance || 0), 0);
-  const totalExpenses = todayExpenses.reduce((sum: number, expense: any) => sum + expense.amount, 0);
+  const totalMiles = todayTrips.reduce((sum, trip) => sum + (trip.distance || 0), 0);
+  const totalExpenses = todayExpenses.reduce((sum, expense) => sum + expense.amount, 0);
 
   return (
     <div className="p-4 space-y-6" data-testid="dashboard-tab">
@@ -111,7 +112,7 @@ export function DashboardTab() {
             <h3 className="text-lg font-semibold">Recent Routes</h3>
           </div>
           <div className="divide-y divide-border">
-            {trips.slice(0, 3).map((trip: any) => (
+            {trips.slice(0, 3).map((trip) => (
               <div key={trip.id} className="p-4 flex items-center justify-between">
                 <div className="flex-1">
                   <div className="font-medium flex items-center gap-2">

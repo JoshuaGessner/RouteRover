@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Play, Wifi, Signal } from "lucide-react";
 import { useGeolocation } from "@/hooks/useGeolocation";
 import { apiRequest } from "@/lib/queryClient";
+import type { Trip } from "@shared/schema";
 
 export function TrackingTab() {
   const [autoDetection, setAutoDetection] = useState(true);
@@ -21,7 +22,7 @@ export function TrackingTab() {
   const queryClient = useQueryClient();
   const { position, error: gpsError } = useGeolocation();
 
-  const { data: activeTrip } = useQuery({
+  const { data: activeTrip } = useQuery<Trip | null>({
     queryKey: ["/api/trips/active"],
   });
 

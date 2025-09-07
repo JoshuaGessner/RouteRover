@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Upload, FileText, Table, CheckCircle, AlertCircle, Bed, MapPin } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
+import type { ScheduleEntry, AppSettings } from "@shared/schema";
 
 export function ScheduleTab() {
   const [file, setFile] = useState<File | null>(null);
@@ -15,11 +16,11 @@ export function ScheduleTab() {
 
   const queryClient = useQueryClient();
 
-  const { data: scheduleEntries = [] } = useQuery({
+  const { data: scheduleEntries = [] } = useQuery<ScheduleEntry[]>({
     queryKey: ["/api/schedule"],
   });
 
-  const { data: settings } = useQuery({
+  const { data: settings } = useQuery<AppSettings | null>({
     queryKey: ["/api/settings"],
   });
 
@@ -218,7 +219,7 @@ export function ScheduleTab() {
           </div>
           <div className="divide-y divide-border">
             {scheduleEntries.length > 0 ? (
-              scheduleEntries.slice(0, 10).map((entry: any) => (
+              scheduleEntries.slice(0, 10).map((entry) => (
                 <div key={entry.id} className="p-4">
                   <div className="flex items-center justify-between mb-2">
                     <span className="font-medium">

@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Save, Camera, Image, Fuel, Utensils, Car } from "lucide-react";
 import { useCamera } from "@/hooks/useCamera";
 import { apiRequest } from "@/lib/queryClient";
+import type { Expense } from "@shared/schema";
 
 export function ExpensesTab() {
   const [amount, setAmount] = useState("");
@@ -18,9 +19,9 @@ export function ExpensesTab() {
   const [notes, setNotes] = useState("");
   
   const queryClient = useQueryClient();
-  const { captureImage, isCapturing } = useCamera();
+  const { captureImage, selectFromGallery, isCapturing, error: cameraError } = useCamera();
 
-  const { data: expenses = [] } = useQuery({
+  const { data: expenses = [] } = useQuery<Expense[]>({
     queryKey: ["/api/expenses"],
   });
 
@@ -53,20 +54,37 @@ export function ExpensesTab() {
     try {
       const imageFile = await captureImage();
       if (imageFile) {
-        const formData = new FormData();
-        formData.append('image', imageFile);
-        
-        const response = await fetch('/api/receipts', {
-          method: 'POST',
-          body: formData,
-        });
-        
-        if (response.ok) {
-          queryClient.invalidateQueries({ queryKey: ["/api/receipts"] });
-        }
+        await uploadReceipt(imageFile);
       }
     } catch (error) {
       console.error('Failed to capture receipt:', error);
+    }
+  };
+
+  const handleGallerySelect = async () => {
+    try {
+      const imageFile = await selectFromGallery();
+      if (imageFile) {
+        await uploadReceipt(imageFile);
+      }
+    } catch (error) {
+      console.error('Failed to select from gallery:', error);
+    }
+  };
+
+  const uploadReceipt = async (imageFile: File) => {
+    const formData = new FormData();
+    formData.append('image', imageFile);
+    
+    const response = await fetch('/api/receipts', {
+      method: 'POST',
+      body: formData,
+    });
+    
+    if (response.ok) {
+      queryClient.invalidateQueries({ queryKey: ["/api/receipts"] });
+    } else {
+      throw new Error('Upload failed');
     }
   };
 
@@ -180,6 +198,7 @@ export function ExpensesTab() {
               <Button
                 variant="secondary"
                 disabled={isCapturing}
+                onClick={handleGallerySelect}
                 data-testid="select-from-gallery"
               >
                 <Image className="w-4 h-4 mr-2" />
@@ -187,6 +206,11 @@ export function ExpensesTab() {
               </Button>
             </div>
             
+            {cameraError && (
+              <p className="text-xs text-destructive mb-2">
+                Camera Error: {cameraError}
+              </p>
+            )}
             <p className="text-xs text-muted-foreground">
               OCR will automatically extract merchant, date, amount, and tax information
             </p>
@@ -204,7 +228,7 @@ export function ExpensesTab() {
             </Button>
           </div>
           <div className="divide-y divide-border">
-            {expenses.slice(0, 5).map((expense: any) => (
+            {expenses.slice(0, 5).map((expense) => (
               <div key={expense.id} className="p-4 flex items-center gap-4">
                 <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center text-primary">
                   {getCategoryIcon(expense.category)}

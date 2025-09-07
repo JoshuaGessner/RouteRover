@@ -6,17 +6,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Search, Filter, Eye } from "lucide-react";
+import type { Receipt } from "@shared/schema";
 
 export function ReceiptsTab() {
   const [searchTerm, setSearchTerm] = useState("");
   const [dateFilter, setDateFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
 
-  const { data: receipts = [] } = useQuery({
+  const { data: receipts = [] } = useQuery<Receipt[]>({
     queryKey: ["/api/receipts"],
   });
 
-  const filteredReceipts = receipts.filter((receipt: any) => {
+  const filteredReceipts = receipts.filter((receipt) => {
     const matchesSearch = !searchTerm || 
       receipt.ocrText?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       receipt.extractedData?.merchant?.toLowerCase().includes(searchTerm.toLowerCase());

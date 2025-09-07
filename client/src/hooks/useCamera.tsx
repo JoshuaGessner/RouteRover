@@ -2,16 +2,26 @@ import { useState, useRef } from "react";
 
 export function useCamera() {
   const [isCapturing, setIsCapturing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const captureImage = async (): Promise<File | null> => {
     setIsCapturing(true);
+    setError(null);
     
     try {
+      // Check if camera is available
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('Camera not supported on this device');
+      }
+
       // Try to access camera
       const stream = await navigator.mediaDevices.getUserMedia({ 
         video: { 
-          facingMode: "environment" // Prefer back camera
+          facingMode: "environment", // Prefer back camera
+          width: { ideal: 1920 },
+          height: { ideal: 1080 }
         } 
       });
       
@@ -24,8 +34,10 @@ export function useCamera() {
       video.playsInline = true;
 
       // Wait for video to be ready
-      await new Promise((resolve) => {
+      await new Promise((resolve, reject) => {
         video.onloadedmetadata = resolve;
+        video.onerror = reject;
+        setTimeout(reject, 5000); // Timeout after 5 seconds
       });
 
       // Create canvas to capture frame
@@ -39,9 +51,13 @@ export function useCamera() {
       context.drawImage(video, 0, 0);
       
       // Convert canvas to blob
-      const blob = await new Promise<Blob>((resolve) => {
+      const blob = await new Promise<Blob>((resolve, reject) => {
         canvas.toBlob((blob) => {
-          resolve(blob!);
+          if (blob) {
+            resolve(blob);
+          } else {
+            reject(new Error('Failed to create image blob'));
+          }
         }, 'image/jpeg', 0.8);
       });
 
@@ -56,10 +72,35 @@ export function useCamera() {
       return file;
     } catch (error) {
       console.error('Camera capture failed:', error);
+      setError(error instanceof Error ? error.message : 'Camera access failed');
       return null;
     } finally {
       setIsCapturing(false);
     }
+  };
+
+  const selectFromGallery = async (): Promise<File | null> => {
+    return new Promise((resolve) => {
+      if (!fileInputRef.current) {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*';
+        input.capture = 'environment';
+        input.onchange = (e) => {
+          const target = e.target as HTMLInputElement;
+          const file = target.files?.[0] || null;
+          resolve(file);
+        };
+        input.click();
+      } else {
+        fileInputRef.current.onchange = (e) => {
+          const target = e.target as HTMLInputElement;
+          const file = target.files?.[0] || null;
+          resolve(file);
+        };
+        fileInputRef.current.click();
+      }
+    });
   };
 
   const stopCamera = () => {
@@ -71,7 +112,9 @@ export function useCamera() {
 
   return {
     captureImage,
+    selectFromGallery,
     stopCamera,
     isCapturing,
+    error,
   };
 }
