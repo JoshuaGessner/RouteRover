@@ -154,19 +154,25 @@ export function CalendarView() {
     }
   };
 
+  const handleTabChange = (value: string) => {
+    setActiveTab(value as 'calendar' | 'import');
+    // Scroll to top when changing tabs
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   return (
-    <div className="p-4 space-y-6" data-testid="calendar-view">
-      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'calendar' | 'import')}>
-        <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 pb-4">
-          <TabsList className="grid w-full grid-cols-2 max-w-full">
-            <TabsTrigger value="calendar" className="text-sm px-3">Calendar & Analytics</TabsTrigger>
-            <TabsTrigger value="import" className="text-sm px-3">Import Schedule</TabsTrigger>
+    <div className="w-full max-w-full overflow-hidden" data-testid="calendar-view">
+      <Tabs value={activeTab} onValueChange={handleTabChange}>
+        <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 p-4 border-b">
+          <TabsList className="grid w-full grid-cols-2 max-w-md mx-auto">
+            <TabsTrigger value="calendar" className="text-sm">Calendar & Analytics</TabsTrigger>
+            <TabsTrigger value="import" className="text-sm">Import Schedule</TabsTrigger>
           </TabsList>
         </div>
         
-        <TabsContent value="calendar" className="space-y-6 mt-0">
+        <TabsContent value="calendar" className="p-4 space-y-6 w-full max-w-full overflow-hidden">
           {/* Analytics Summary Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 w-full">
         <Card className="bg-gradient-to-r from-blue-50 to-cyan-50 border-blue-200">
           <CardContent className="p-6">
             <div className="flex items-center gap-3">
@@ -237,7 +243,7 @@ export function CalendarView() {
       </div>
 
       {/* Enhanced Data Visualizations Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 w-full">
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-lg flex items-center gap-2">
@@ -314,7 +320,7 @@ export function CalendarView() {
       </div>
 
       {/* View Controls */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 w-full">
         <div className="flex gap-2">
           <Button 
             variant={view === 'month' ? 'default' : 'outline'} 
@@ -339,20 +345,23 @@ export function CalendarView() {
           </Button>
         </div>
         
-        <div className="flex items-center gap-4 text-sm">
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full" style={{backgroundColor: COLORS.trip}}></div>
-            <span>Business Trips</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full" style={{backgroundColor: COLORS.hotel}}></div>
-            <span>Hotel Stays</span>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 text-sm w-full">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded-full" style={{backgroundColor: COLORS.trip}}></div>
+              <span>Business Trips</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded-full" style={{backgroundColor: COLORS.hotel}}></div>
+              <span>Hotel Stays</span>
+            </div>
           </div>
           <Button 
             variant="outline" 
             size="sm"
             onClick={() => window.open('/api/export/schedule', '_blank')}
             data-testid="export-schedule"
+            className="w-full sm:w-auto"
           >
             <Download className="w-4 h-4 mr-2" />
             Export IRS Report
@@ -361,9 +370,9 @@ export function CalendarView() {
       </div>
 
       {/* Enhanced Calendar */}
-      <Card className="border-0 shadow-lg bg-white">
+      <Card className="border-0 shadow-lg bg-white w-full overflow-hidden">
         <CardContent className="p-0">
-          <div style={{ height: '600px' }} className="rounded-lg overflow-hidden">
+          <div className="h-[600px] w-full rounded-lg overflow-hidden">
             <style jsx>{`
               .rbc-calendar {
                 background: white;
@@ -443,7 +452,7 @@ export function CalendarView() {
                   }
                 };
               }}
-              style={{ height: '100%' }}
+              style={{ height: '100%', width: '100%', maxWidth: '100%' }}
               data-testid="calendar-component"
             />
           </div>
@@ -514,7 +523,7 @@ export function CalendarView() {
       )}
         </TabsContent>
         
-        <TabsContent value="import" className="space-y-6 mt-0">
+        <TabsContent value="import" className="p-4 space-y-6 w-full max-w-full overflow-hidden">
           <Card>
             <CardContent className="p-6">
               <div className="space-y-4">
