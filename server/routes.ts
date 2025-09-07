@@ -574,7 +574,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/schedule/import", isAuthenticated, uploadSchedule.single('file'), async (req: MulterRequest, res) => {
     try {
+      console.log("Schedule import - received file:", req.file?.originalname, req.file?.mimetype);
+      
       if (!req.file) {
+        console.log("No file received in request");
         return res.status(400).json({ message: "No file provided" });
       }
 
