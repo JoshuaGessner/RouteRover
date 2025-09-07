@@ -57,7 +57,7 @@ export default function Landing() {
             </div>
           </div>
           <h1 className="text-4xl font-bold mb-4 text-foreground">
-            Route Rover
+            RouteRover
           </h1>
           <p className="text-xl text-muted-foreground mb-2">
             Professional mileage and expense tracking
