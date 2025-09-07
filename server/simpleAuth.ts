@@ -77,11 +77,11 @@ export async function setupAuth(app: Express) {
 
       // Set session
       req.session.userId = user.id;
-      req.session.user = { id: user.id, username: user.username, email: user.email };
+      req.session.user = { id: user.id, username: user.username, email: user.email || '' };
 
       res.json({ 
         success: true, 
-        user: { id: user.id, username: user.username, email: user.email }
+        user: { id: user.id, username: user.username, email: user.email || '' }
       });
     } catch (error) {
       console.error('Login error:', error);
@@ -114,11 +114,11 @@ export async function setupAuth(app: Express) {
 
       // Set session
       req.session.userId = user.id;
-      req.session.user = { id: user.id, username: user.username, email: user.email };
+      req.session.user = { id: user.id, username: user.username, email: user.email || '' };
 
       res.json({ 
         success: true, 
-        user: { id: user.id, username: user.username, email: user.email }
+        user: { id: user.id, username: user.username, email: user.email || '' }
       });
     } catch (error) {
       console.error('Registration error:', error);
