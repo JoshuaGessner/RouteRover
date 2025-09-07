@@ -81,6 +81,7 @@ export const appSettings = pgTable("app_settings", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").references(() => users.id),
   googleApiKey: text("google_api_key"),
+  openaiApiKey: text("openai_api_key"),
   mileageRate: real("mileage_rate").default(0.655),
   autoDetectionEnabled: boolean("auto_detection_enabled").default(true),
   detectionSensitivity: real("detection_sensitivity").default(3),

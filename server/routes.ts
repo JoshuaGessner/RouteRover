@@ -81,10 +81,31 @@ async function calculateRoute(startAddress: string, endAddress: string, apiKey: 
 }
 
 // OCR processing
-async function processReceiptOCR(imagePath: string) {
-  const worker = await Tesseract.createWorker('eng');
+async function processReceiptOCR(imagePath: string, userId?: string) {
+  // Try advanced AI analysis first if available
+  if (userId) {
+    const userSettings = await storage.getUserSettings(userId);
+    if (userSettings?.openaiApiKey) {
+      try {
+        const aiResult = await processReceiptWithAI(imagePath, userSettings.openaiApiKey);
+        if (aiResult) {
+          return aiResult;
+        }
+      } catch (error) {
+        console.error('AI processing failed, falling back to OCR:', error);
+      }
+    }
+  }
+
+  // Fallback to enhanced Tesseract OCR
+  const worker = await Tesseract.createWorker('eng', Tesseract.OEM.LSTM_ONLY, {
+    preserve_interword_spaces: '1',
+  });
   
-  const { data: { text } } = await worker.recognize(imagePath);
+  const { data: { text } } = await worker.recognize(imagePath, {
+    tessedit_char_whitelist: '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz .,!@#$%^&*()-+=[]{}|;:\'",.<>?/~`',
+    tessedit_pageseg_mode: Tesseract.PSM.AUTO,
+  });
   await worker.terminate();
   
   // Extract structured data from OCR text
@@ -96,33 +117,152 @@ async function processReceiptOCR(imagePath: string) {
   };
 }
 
+async function processReceiptWithAI(imagePath: string, openaiApiKey: string) {
+  try {
+    // Read the image file and convert to base64
+    const imageBuffer = fs.readFileSync(imagePath);
+    const base64Image = imageBuffer.toString('base64');
+    const mimeType = path.extname(imagePath).toLowerCase() === '.png' ? 'image/png' : 'image/jpeg';
+    
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${openaiApiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: "gpt-4o", // gpt-4o has vision capabilities
+        messages: [
+          {
+            role: "user",
+            content: [
+              {
+                type: "text",
+                text: "Analyze this receipt image and extract the following information in JSON format: merchant name, total amount (as a number), date (in MM/DD/YYYY format), tax amount (as a number), and any line items. Be as accurate as possible with the amounts and dates. If you can't find certain information, use null for that field."
+              },
+              {
+                type: "image_url",
+                image_url: {
+                  url: `data:${mimeType};base64,${base64Image}`,
+                  detail: "high"
+                }
+              }
+            ]
+          }
+        ],
+        response_format: { type: "json_object" },
+        max_tokens: 1000
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`OpenAI API error: ${response.status}`);
+    }
+
+    const result = await response.json();
+    const aiData = JSON.parse(result.choices[0].message.content);
+    
+    // Also get raw text for backup
+    const fallbackWorker = await Tesseract.createWorker('eng');
+    const { data: { text } } = await fallbackWorker.recognize(imagePath);
+    await fallbackWorker.terminate();
+    
+    return {
+      ocrText: text,
+      extractedData: {
+        merchant: aiData.merchant || null,
+        amount: typeof aiData.total_amount === 'number' ? aiData.total_amount : null,
+        date: aiData.date || null,
+        tax: typeof aiData.tax_amount === 'number' ? aiData.tax_amount : null,
+        items: aiData.line_items || []
+      }
+    };
+  } catch (error) {
+    console.error('AI receipt processing error:', error);
+    return null;
+  }
+}
+
 function extractReceiptData(text: string) {
   const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0);
   
   const data: any = {};
   
-  // Extract amount (look for dollar signs and numbers)
-  const amountMatch = text.match(/\$[\d,]+\.?\d{0,2}/g);
-  if (amountMatch) {
-    const amounts = amountMatch.map(a => parseFloat(a.replace(/[$,]/g, '')));
-    data.amount = Math.max(...amounts); // Take the largest amount as the total
+  // Enhanced amount extraction with multiple patterns
+  const amountPatterns = [
+    /total.*?\$?([\d,]+\.?\d{0,2})/i,
+    /amount.*?\$?([\d,]+\.?\d{0,2})/i,
+    /subtotal.*?\$?([\d,]+\.?\d{0,2})/i,
+    /\$[\d,]+\.\d{2}(?=\s*$)/gm, // End of line amounts
+    /\$[\d,]+\.?\d{0,2}/g // General dollar amounts
+  ];
+  
+  let amounts: number[] = [];
+  for (const pattern of amountPatterns) {
+    const matches = text.match(pattern);
+    if (matches) {
+      const extractedAmounts = matches.map(match => {
+        const numStr = match.replace(/[^\d.,]/g, '');
+        return parseFloat(numStr.replace(/,/g, ''));
+      }).filter(num => !isNaN(num) && num > 0);
+      amounts.push(...extractedAmounts);
+      if (pattern.source.includes('total')) break; // Prefer total if found
+    }
   }
   
-  // Extract date
-  const dateMatch = text.match(/\b\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}\b/);
-  if (dateMatch) {
-    data.date = dateMatch[0];
+  if (amounts.length > 0) {
+    data.amount = Math.max(...amounts);
   }
   
-  // Extract merchant (usually one of the first few lines)
-  if (lines.length > 0) {
-    data.merchant = lines[0];
+  // Enhanced date extraction with multiple formats
+  const datePatterns = [
+    /\b\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4}\b/, // MM/DD/YYYY
+    /\b\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2}\b/, // MM/DD/YY
+    /\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2},?\s+\d{4}\b/i,
+    /\b\d{4}[\/\-]\d{1,2}[\/\-]\d{1,2}\b/, // YYYY/MM/DD
+    /\b\d{1,2}\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{4}\b/i
+  ];
+  
+  for (const pattern of datePatterns) {
+    const dateMatch = text.match(pattern);
+    if (dateMatch) {
+      data.date = dateMatch[0];
+      break;
+    }
   }
   
-  // Look for tax
-  const taxMatch = text.match(/tax.*?\$?([\d,]+\.?\d{0,2})/i);
-  if (taxMatch) {
-    data.tax = parseFloat(taxMatch[1].replace(/,/g, ''));
+  // Enhanced merchant extraction - look for business names in first few lines
+  const merchantCandidates = lines.slice(0, 5).filter(line => {
+    // Filter out obvious non-merchant lines
+    return !line.match(/^\d+$/) && 
+           !line.match(/^\$/) && 
+           !line.match(/^(receipt|thank you|visit)/i) &&
+           line.length > 2 && 
+           line.length < 50;
+  });
+  
+  if (merchantCandidates.length > 0) {
+    // Pick the longest reasonable line as merchant name
+    data.merchant = merchantCandidates.reduce((a, b) => 
+      a.length > b.length ? a : b
+    );
+  }
+  
+  // Enhanced tax extraction
+  const taxPatterns = [
+    /tax.*?\$?([\d,]+\.?\d{0,2})/i,
+    /sales tax.*?\$?([\d,]+\.?\d{0,2})/i,
+    /hst.*?\$?([\d,]+\.?\d{0,2})/i,
+    /vat.*?\$?([\d,]+\.?\d{0,2})/i,
+    /gst.*?\$?([\d,]+\.?\d{0,2})/i
+  ];
+  
+  for (const pattern of taxPatterns) {
+    const taxMatch = text.match(pattern);
+    if (taxMatch) {
+      data.tax = parseFloat(taxMatch[1].replace(/,/g, ''));
+      break;
+    }
   }
   
   return data;
@@ -381,10 +521,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "No image file provided" });
       }
 
+      const userId = getCurrentUserId(req);
+      
       // Sanitize file path to prevent path traversal
       const sanitizedPath = sanitizeFilePath(req.file.path);
-      const { ocrText, extractedData } = await processReceiptOCR(sanitizedPath);
-      const userId = getCurrentUserId(req);
+      const { ocrText, extractedData } = await processReceiptOCR(sanitizedPath, userId);
       
       const receiptData = insertReceiptSchema.parse({
         userId,

@@ -16,7 +16,9 @@ import type { AppSettings } from "@shared/schema";
 
 export function SettingsTab() {
   const [showApiKey, setShowApiKey] = useState(false);
+  const [showOpenAIKey, setShowOpenAIKey] = useState(false);
   const [apiKey, setApiKey] = useState("");
+  const [openaiApiKey, setOpenaiApiKey] = useState("");
   const [mileageRate, setMileageRate] = useState("0.655");
   const [defaultStartAddress, setDefaultStartAddress] = useState("");
   const [defaultEndAddress, setDefaultEndAddress] = useState("");
@@ -37,6 +39,7 @@ export function SettingsTab() {
   useEffect(() => {
     if (settings) {
       setApiKey(settings.googleApiKey || "");
+      setOpenaiApiKey(settings.openaiApiKey || "");
       setMileageRate(settings.mileageRate?.toString() || "0.655");
       setDefaultStartAddress(settings.defaultStartAddress || "");
       setDefaultEndAddress(settings.defaultEndAddress || "");
@@ -136,6 +139,7 @@ export function SettingsTab() {
   const handleSaveSettings = () => {
     saveSettingsMutation.mutate({
       googleApiKey: apiKey,
+      openaiApiKey: openaiApiKey,
       mileageRate: parseFloat(mileageRate),
       darkMode: theme === 'dark',
       autoDetectionEnabled: true,
@@ -255,6 +259,32 @@ export function SettingsTab() {
               </div>
               <p className="text-xs text-muted-foreground mt-1">
                 Required for automatic route calculations
+              </p>
+            </div>
+            
+            <div>
+              <Label className="text-sm font-medium mb-2 block">OpenAI API Key (Optional)</Label>
+              <div className="flex gap-2">
+                <Input
+                  type={showOpenAIKey ? "text" : "password"}
+                  placeholder="Enter OpenAI API key for enhanced receipt analysis"
+                  value={openaiApiKey}
+                  onChange={(e) => setOpenaiApiKey(e.target.value)}
+                  className="flex-1"
+                  data-testid="openai-api-key-input"
+                />
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setShowOpenAIKey(!showOpenAIKey)}
+                  className="px-3"
+                  data-testid="toggle-openai-key-visibility"
+                >
+                  {showOpenAIKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Enables advanced AI-powered receipt analysis for better accuracy
               </p>
             </div>
             

@@ -308,11 +308,10 @@ export class DatabaseStorage implements IStorage {
 
   // API Usage tracking
   async getApiUsage(userId: string, month?: string): Promise<ApiUsage[]> {
-    const query = db.select().from(apiUsage).where(eq(apiUsage.userId, userId));
     if (month) {
-      return await query.where(eq(apiUsage.month, month));
+      return await db.select().from(apiUsage).where(and(eq(apiUsage.userId, userId), eq(apiUsage.month, month)));
     }
-    return await query;
+    return await db.select().from(apiUsage).where(eq(apiUsage.userId, userId));
   }
 
   async trackApiCall(insertUsage: InsertApiUsage): Promise<ApiUsage> {
@@ -321,7 +320,7 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(apiUsage)
       .where(and(
-        eq(apiUsage.userId, insertUsage.userId),
+        eq(apiUsage.userId, insertUsage.userId!),
         eq(apiUsage.apiProvider, insertUsage.apiProvider),
         eq(apiUsage.month, insertUsage.month)
       ));
@@ -331,7 +330,7 @@ export class DatabaseStorage implements IStorage {
       const [updated] = await db
         .update(apiUsage)
         .set({
-          callCount: existing[0].callCount + 1,
+          callCount: (existing[0].callCount || 0) + 1,
           lastCalled: insertUsage.lastCalled,
           totalCost: (existing[0].totalCost || 0) + (insertUsage.totalCost || 0)
         })
@@ -624,12 +623,15 @@ class MemStorage implements IStorage {
         id,
         userId: insertSettings.userId ?? null,
         googleApiKey: insertSettings.googleApiKey ?? null,
+        openaiApiKey: insertSettings.openaiApiKey ?? null,
         mileageRate: insertSettings.mileageRate ?? null,
         autoDetectionEnabled: insertSettings.autoDetectionEnabled ?? null,
         detectionSensitivity: insertSettings.detectionSensitivity ?? null,
         darkMode: insertSettings.darkMode ?? null,
         pushNotifications: insertSettings.pushNotifications ?? null,
-        autoBackup: insertSettings.autoBackup ?? null
+        autoBackup: insertSettings.autoBackup ?? null,
+        defaultStartAddress: insertSettings.defaultStartAddress ?? null,
+        defaultEndAddress: insertSettings.defaultEndAddress ?? null
       };
       this.appSettings.set(id, settings);
       return settings;
