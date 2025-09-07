@@ -1,0 +1,54 @@
+4:56:57 PM [express] GET /api/user 401 in 2ms :: {"message":"Unauthorized"}
+4:57:26 PM [express] POST /api/register 200 in 56ms :: {"success":true,"user":{"id":"ac8a4a8a-71d7-4…
+Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client
+    at ServerResponse.setHeader (node:_http_outgoing:700:11)
+    at ServerResponse.header (/home/josh/RouteRover/node_modules/express/lib/response.js:794:10)
+    at ServerResponse.send (/home/josh/RouteRover/node_modules/express/lib/response.js:174:12)
+    at ServerResponse.json (/home/josh/RouteRover/node_modules/express/lib/response.js:278:15)
+    at ServerResponse.res.json (/home/josh/RouteRover/server/index.ts:23:28)
+    at <anonymous> (/home/josh/RouteRover/server/index.ts:52:24)
+    at Layer.handle_error (/home/josh/RouteRover/node_modules/express/lib/router/layer.js:71:5)
+    at trim_prefix (/home/josh/RouteRover/node_modules/express/lib/router/index.js:326:13)
+    at /home/josh/RouteRover/node_modules/express/lib/router/index.js:286:9
+    at Function.process_params (/home/josh/RouteRover/node_modules/express/lib/router/index.js:346:12)
+    at Immediate.next (/home/josh/RouteRover/node_modules/express/lib/router/index.js:280:10)
+    at process.processImmediate (node:internal/timers:487:21)
+4:57:26 PM [express] GET /api/user 500 in 11ms :: {"message":"password authentication failed for use…
+error: password authentication failed for user "postgres"
+    at /home/josh/RouteRover/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async PGStore._asyncQuery (/home/josh/RouteRover/node_modules/connect-pg-simple/index.js:322:21)
+error: password authentication failed for user "postgres"
+    at /home/josh/RouteRover/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async PGStore._asyncQuery (/home/josh/RouteRover/node_modules/connect-pg-simple/index.js:322:21)
+4:57:26 PM [express] GET /api/expenses 500 in 9ms :: {"message":"password authentication failed for …
+4:57:26 PM [express] GET /api/trips 500 in 12ms :: {"message":"password authentication failed for us…
+error: password authentication failed for user "postgres"
+    at /home/josh/RouteRover/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async PGStore._asyncQuery (/home/josh/RouteRover/node_modules/connect-pg-simple/index.js:322:21)
+error: password authentication failed for user "postgres"
+    at /home/josh/RouteRover/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async PGStore._asyncQuery (/home/josh/RouteRover/node_modules/connect-pg-simple/index.js:322:21)
+error: password authentication failed for user "postgres"
+    at /home/josh/RouteRover/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async PGStore._asyncQuery (/home/josh/RouteRover/node_modules/connect-pg-simple/index.js:322:21)
+error: password authentication failed for user "postgres"
+    at /home/josh/RouteRover/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async PGStore._asyncQuery (/home/josh/RouteRover/node_modules/connect-pg-simple/index.js:322:21)
+error: password authentication failed for user "postgres"
+    at /home/josh/RouteRover/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async PGStore._asyncQuery (/home/josh/RouteRover/node_modules/connect-pg-simple/index.js:322:21)
+error: password authentication failed for user "postgres"
+    at /home/josh/RouteRover/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async PGStore._asyncQuery (/home/josh/RouteRover/node_modules/connect-pg-simple/index.js:322:21)
+error: password authentication failed for user "postgres"
+    at /home/josh/RouteRover/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async PGStore._asyncQuery (/home/josh/RouteRover/node_modules/connect-pg-simple/index.js:322:21)
