@@ -17,6 +17,7 @@ export function ExpensesTab() {
   const [category, setCategory] = useState("gas");
   const [merchant, setMerchant] = useState("");
   const [notes, setNotes] = useState("");
+  const [expenseDate, setExpenseDate] = useState(new Date().toISOString().split('T')[0]);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState(false);
   const [editingReceipt, setEditingReceipt] = useState<any>(null);
@@ -79,6 +80,7 @@ export function ExpensesTab() {
       setCategory("");
       setMerchant("");
       setNotes("");
+      setExpenseDate(new Date().toISOString().split('T')[0]);
     },
   });
 
@@ -111,7 +113,7 @@ export function ExpensesTab() {
       category,
       merchant: merchant || null,
       notes: notes || null,
-      date: new Date().toISOString(),
+      date: new Date(expenseDate).toISOString(),
     });
   };
 
@@ -208,6 +210,16 @@ export function ExpensesTab() {
           }
           if (receiptData.extractedData.merchant) {
             setMerchant(receiptData.extractedData.merchant);
+          }
+          if (receiptData.extractedData.date) {
+            // Parse the extracted date and use it instead of today's date
+            const extractedDate = new Date(receiptData.extractedData.date);
+            if (!isNaN(extractedDate.getTime())) {
+              setExpenseDate(extractedDate.toISOString().split('T')[0]);
+            }
+          }
+          if (receiptData.extractedData.address) {
+            setNotes(`Address: ${receiptData.extractedData.address}${receiptData.extractedData.phone ? `, Phone: ${receiptData.extractedData.phone}` : ''}`);
           }
         }
         
@@ -307,6 +319,17 @@ export function ExpensesTab() {
                 value={merchant}
                 onChange={(e) => setMerchant(e.target.value)}
                 data-testid="expense-merchant"
+              />
+            </div>
+            
+            <div>
+              <Label className="text-sm font-medium mb-2 block">Date</Label>
+              <Input
+                type="date"
+                value={expenseDate}
+                onChange={(e) => setExpenseDate(e.target.value)}
+                data-testid="expense-date-input"
+                className="w-full"
               />
             </div>
             

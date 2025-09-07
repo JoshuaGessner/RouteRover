@@ -138,7 +138,7 @@ async function processReceiptWithAI(imagePath: string, openaiApiKey: string) {
             content: [
               {
                 type: "text",
-                text: "Analyze this receipt image and extract the following information in JSON format: merchant name, total amount (as a number), date (in MM/DD/YYYY format), tax amount (as a number), and any line items. Be as accurate as possible with the amounts and dates. If you can't find certain information, use null for that field."
+                text: "Analyze this receipt image and extract the following information in JSON format: merchant name, total amount (as a number), date (in MM/DD/YYYY format), tax amount (as a number), merchant address, phone number, and any line items. Be as accurate as possible with the amounts and dates. If you can't find certain information, use null for that field."
               },
               {
                 type: "image_url",
@@ -174,6 +174,8 @@ async function processReceiptWithAI(imagePath: string, openaiApiKey: string) {
         amount: typeof aiData.total_amount === 'number' ? aiData.total_amount : null,
         date: aiData.date || null,
         tax: typeof aiData.tax_amount === 'number' ? aiData.tax_amount : null,
+        address: aiData.merchant_address || null,
+        phone: aiData.phone_number || null,
         items: aiData.line_items || []
       }
     };
