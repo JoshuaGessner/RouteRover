@@ -67,7 +67,7 @@ export const scheduleEntries = pgTable("schedule_entries", {
   userId: varchar("user_id").references(() => users.id),
   date: timestamp("date").notNull(),
   startAddress: text("start_address").notNull(),
-  endAddress: text("end_address").notNull(),
+  endAddress: text("end_address"),
   notes: text("notes"),
   calculatedDistance: real("calculated_distance"),
   calculatedAmount: real("calculated_amount"),
@@ -87,6 +87,8 @@ export const appSettings = pgTable("app_settings", {
   darkMode: boolean("dark_mode").default(false),
   pushNotifications: boolean("push_notifications").default(true),
   autoBackup: boolean("auto_backup").default(true),
+  defaultStartAddress: text("default_start_address"),
+  defaultEndAddress: text("default_end_address"),
 });
 
 export const errorLogs = pgTable("error_logs", {
