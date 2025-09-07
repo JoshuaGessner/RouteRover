@@ -22,11 +22,21 @@ declare global {
 const PgSession = ConnectPgSimple(session);
 
 export function getSession() {
-  const sessionSecret = process.env.SESSION_SECRET || 'your-secret-key-change-in-production';
+  // Generate a random session secret if none provided (for development)
+  const defaultSecret = 'dev-secret-' + Math.random().toString(36).substring(2, 15);
+  const sessionSecret = process.env.SESSION_SECRET || defaultSecret;
+  
+  if (!process.env.SESSION_SECRET && process.env.NODE_ENV === 'production') {
+    console.warn('⚠️  Using auto-generated session secret. Set SESSION_SECRET environment variable for production.');
+  }
+  
+  // Use same database URL defaults as db.ts
+  const defaultDatabaseUrl = 'postgresql://postgres:password@localhost:5432/routerover';
+  const databaseUrl = process.env.DATABASE_URL || defaultDatabaseUrl;
   
   return session({
     store: new PgSession({
-      conString: process.env.DATABASE_URL,
+      conString: databaseUrl,
       tableName: 'sessions'
     }),
     secret: sessionSecret,
