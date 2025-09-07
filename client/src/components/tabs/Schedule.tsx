@@ -4,8 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Upload, FileText, Table, CheckCircle, AlertCircle, Bed, MapPin, HelpCircle, ChevronDown } from "lucide-react";
+import { Upload, FileText, Table, CheckCircle, AlertCircle, Bed, MapPin, HelpCircle } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import type { ScheduleEntry, AppSettings } from "@shared/schema";
 
@@ -122,87 +121,65 @@ export function ScheduleTab() {
         <CardContent className="pt-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold">Import Schedule</h3>
-            <Collapsible open={showHelp} onOpenChange={setShowHelp}>
-              <CollapsibleTrigger asChild>
-                <Button variant="outline" size="sm" data-testid="help-button">
-                  <HelpCircle className="w-4 h-4 mr-2" />
-                  Help
-                  <ChevronDown className={`w-4 h-4 ml-2 transition-transform ${showHelp ? 'rotate-180' : ''}`} />
-                </Button>
-              </CollapsibleTrigger>
-            </Collapsible>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => setShowHelp(!showHelp)}
+              data-testid="help-button"
+            >
+              <HelpCircle className="w-4 h-4 mr-2" />
+              {showHelp ? 'Hide Help' : 'Show Help'}
+            </Button>
           </div>
 
           {/* Help Content */}
-          <Collapsible open={showHelp} onOpenChange={setShowHelp}>
-            <CollapsibleContent className="mb-6">
-              <div className="border rounded-lg p-4 bg-muted/20">
-                <h4 className="font-semibold text-sm mb-3">📋 Required Spreadsheet Headers</h4>
-                <p className="text-xs text-muted-foreground mb-4">
-                  Your spreadsheet must contain these minimum headers for route calculations to work properly.
-                </p>
-                
-                <div className="space-y-4">
-                  {/* Required Headers */}
-                  <div>
-                    <h5 className="font-semibold text-xs mb-2 text-accent">✅ Required Headers</h5>
-                    <div className="grid grid-cols-1 gap-2">
-                      <div className="flex items-center justify-between p-2 bg-accent/5 border border-accent/20 rounded">
-                        <div>
-                          <div className="font-medium text-xs">Date</div>
-                          <div className="text-[10px] text-muted-foreground">Trip date (MM/DD/YYYY format)</div>
-                        </div>
-                        <Badge variant="secondary" className="bg-accent/10 text-accent font-mono text-[10px] px-1 py-0">Date</Badge>
-                      </div>
-                      
-                      <div className="flex items-center justify-between p-2 bg-accent/5 border border-accent/20 rounded">
-                        <div>
-                          <div className="font-medium text-xs">Start Address</div>
-                          <div className="text-[10px] text-muted-foreground">Starting location</div>
-                        </div>
-                        <Badge variant="secondary" className="bg-accent/10 text-accent font-mono text-[10px] px-1 py-0">Start</Badge>
-                      </div>
-                      
-                      <div className="flex items-center justify-between p-2 bg-accent/5 border border-accent/20 rounded">
-                        <div>
-                          <div className="font-medium text-xs">End Address</div>
-                          <div className="text-[10px] text-muted-foreground">Destination location</div>
-                        </div>
-                        <Badge variant="secondary" className="bg-accent/10 text-accent font-mono text-[10px] px-1 py-0">End</Badge>
-                      </div>
-                    </div>
-                  </div>
+          {showHelp && (
+            <div className="mb-6 border rounded-lg p-4 bg-muted/20">
+              <h4 className="font-semibold text-sm mb-3">📋 Required Spreadsheet Headers</h4>
+              <p className="text-xs text-muted-foreground mb-4">
+                Your spreadsheet must contain these minimum headers for route calculations to work properly:
+              </p>
+              
+              <div className="space-y-3">
+                {/* Required Headers */}
+                <div>
+                  <h5 className="font-semibold text-xs mb-2 text-green-600">✅ Required Headers</h5>
+                  <ul className="text-xs space-y-1 ml-4">
+                    <li><strong>Date</strong> - Trip date (MM/DD/YYYY format)</li>
+                    <li><strong>Start</strong> - Starting location or address</li>
+                    <li><strong>End</strong> - Destination or end location</li>
+                  </ul>
+                </div>
 
-                  {/* Example */}
-                  <div>
-                    <h5 className="font-semibold text-xs mb-2">📊 Example Layout</h5>
-                    <div className="border rounded overflow-hidden text-[10px]">
-                      <table className="w-full">
-                        <thead className="bg-muted">
-                          <tr>
-                            <th className="p-1 text-left font-medium">Date</th>
-                            <th className="p-1 text-left font-medium">Start</th>
-                            <th className="p-1 text-left font-medium">End</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          <tr className="border-t">
-                            <td className="p-1">01/15/2024</td>
-                            <td className="p-1">123 Main St</td>
-                            <td className="p-1">456 Oak Ave</td>
-                          </tr>
-                        </tbody>
-                      </table>
-                    </div>
-                    
-                    <div className="mt-2 text-[10px] text-muted-foreground">
-                      💡 <strong>Tip:</strong> Header names are flexible (e.g., "Date", "Trip Date", "Start Address", "From", etc.)
-                    </div>
+                {/* Example */}
+                <div>
+                  <h5 className="font-semibold text-xs mb-2">📊 Example Layout</h5>
+                  <div className="border rounded overflow-hidden text-xs">
+                    <table className="w-full">
+                      <thead className="bg-muted">
+                        <tr>
+                          <th className="p-2 text-left font-medium">Date</th>
+                          <th className="p-2 text-left font-medium">Start</th>
+                          <th className="p-2 text-left font-medium">End</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr className="border-t">
+                          <td className="p-2">01/15/2024</td>
+                          <td className="p-2">123 Main St, City</td>
+                          <td className="p-2">456 Oak Ave, Town</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                  
+                  <div className="mt-2 text-xs text-muted-foreground">
+                    💡 <strong>Tip:</strong> Header names are flexible (e.g., "Date", "Trip Date", "Start Address", "From", etc.)
                   </div>
                 </div>
               </div>
-            </CollapsibleContent>
-          </Collapsible>
+            </div>
+          )}
           
           <div className="space-y-4">
             <div className="w-full h-32 border-2 border-dashed border-border rounded-lg flex items-center justify-center bg-muted/50 relative">
