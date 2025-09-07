@@ -10,11 +10,7 @@ export interface ExtractedReceiptData {
 
 export async function extractTextFromImage(imageFile: File): Promise<string> {
   const result = await Tesseract.recognize(imageFile, 'eng', {
-    logger: (m) => {
-      if (m.status === 'recognizing text') {
-        console.log(`OCR Progress: ${Math.round(m.progress * 100)}%`);
-      }
-    }
+    logger: () => {}
   });
   
   return result.data.text;

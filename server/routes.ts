@@ -639,14 +639,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/schedule/import", isAuthenticated, uploadSchedule.single('schedule'), async (req: MulterRequest, res) => {
     try {
-      console.log("Schedule import - received file:", req.file?.originalname, req.file?.mimetype);
-      
       if (!req.file) {
-        console.log("No file received in request");
         return res.status(400).json({ message: "No file provided" });
       }
-      
-      console.log("Processing file:", req.file.originalname, req.file.mimetype);
 
       const parsedData = parseScheduleFile(req.file.path, req.file.originalname);
       const headerMapping = detectHeaders(parsedData);

@@ -73,7 +73,7 @@ export function SettingsTab() {
           locationStatus.addEventListener('change', () => setLocationPermission(locationStatus.state));
         }
       } catch (error) {
-        console.log('Permission API not supported');
+        // Permission API not supported
       }
     };
     
