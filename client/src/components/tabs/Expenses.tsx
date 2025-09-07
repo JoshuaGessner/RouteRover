@@ -22,6 +22,11 @@ export function ExpensesTab() {
   const [editingReceipt, setEditingReceipt] = useState<any>(null);
   const [editMerchant, setEditMerchant] = useState("");
   const [editAmount, setEditAmount] = useState("");
+  const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
+  const [editExpenseAmount, setEditExpenseAmount] = useState("");
+  const [editExpenseCategory, setEditExpenseCategory] = useState("");
+  const [editExpenseMerchant, setEditExpenseMerchant] = useState("");
+  const [editExpenseNotes, setEditExpenseNotes] = useState("");
   
   const queryClient = useQueryClient();
   const { captureImage, selectFromGallery, isCapturing, error: cameraError } = useCamera();
@@ -77,6 +82,27 @@ export function ExpensesTab() {
     },
   });
 
+  const updateExpenseMutation = useMutation({
+    mutationFn: async ({ id, updates }: { id: string; updates: any }) => {
+      const response = await apiRequest("PATCH", `/api/expenses/${id}`, updates);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/expenses"] });
+      setEditingExpense(null);
+    },
+  });
+
+  const deleteExpenseMutation = useMutation({
+    mutationFn: async (expenseId: string) => {
+      const response = await apiRequest("DELETE", `/api/expenses/${expenseId}`);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/expenses"] });
+    },
+  });
+
   const handleSaveExpense = () => {
     if (!amount || !category) return;
     
@@ -87,6 +113,42 @@ export function ExpensesTab() {
       notes: notes || null,
       date: new Date().toISOString(),
     });
+  };
+
+  const handleEditExpense = (expense: Expense) => {
+    setEditingExpense(expense);
+    setEditExpenseAmount(expense.amount.toString());
+    setEditExpenseCategory(expense.category);
+    setEditExpenseMerchant(expense.merchant || "");
+    setEditExpenseNotes(expense.notes || "");
+  };
+
+  const handleUpdateExpense = () => {
+    if (!editingExpense || !editExpenseAmount || !editExpenseCategory) return;
+    
+    updateExpenseMutation.mutate({
+      id: editingExpense.id,
+      updates: {
+        amount: parseFloat(editExpenseAmount),
+        category: editExpenseCategory,
+        merchant: editExpenseMerchant || null,
+        notes: editExpenseNotes || null,
+      }
+    });
+  };
+
+  const handleDeleteExpense = (expenseId: string) => {
+    if (confirm('Are you sure you want to delete this expense?')) {
+      deleteExpenseMutation.mutate(expenseId);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingExpense(null);
+    setEditExpenseAmount("");
+    setEditExpenseCategory("");
+    setEditExpenseMerchant("");
+    setEditExpenseNotes("");
   };
 
   const handleCaptureReceipt = async () => {
@@ -490,24 +552,117 @@ export function ExpensesTab() {
           </div>
           <div className="divide-y divide-border">
             {expenses.slice(0, 5).map((expense) => (
-              <div key={expense.id} className="p-4 flex items-center gap-4">
-                <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center text-primary">
-                  {getCategoryIcon(expense.category)}
-                </div>
-                <div className="flex-1">
-                  <div className="font-medium">{expense.merchant || 'Unknown Merchant'}</div>
-                  <div className="text-sm text-muted-foreground">
-                    {new Date(expense.date).toLocaleDateString()} • {expense.category}
+              <div key={expense.id} className="p-4">
+                {editingExpense?.id === expense.id ? (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label className="text-sm font-medium mb-2 block">Amount</Label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={editExpenseAmount}
+                          onChange={(e) => setEditExpenseAmount(e.target.value)}
+                          placeholder="0.00"
+                          data-testid="edit-expense-amount"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-sm font-medium mb-2 block">Category</Label>
+                        <Select value={editExpenseCategory} onValueChange={setEditExpenseCategory}>
+                          <SelectTrigger data-testid="edit-expense-category">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="gas">Gas</SelectItem>
+                            <SelectItem value="parking">Parking</SelectItem>
+                            <SelectItem value="tolls">Tolls</SelectItem>
+                            <SelectItem value="meals">Meals</SelectItem>
+                            <SelectItem value="lodging">Lodging</SelectItem>
+                            <SelectItem value="other">Other</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium mb-2 block">Merchant</Label>
+                      <Input
+                        value={editExpenseMerchant}
+                        onChange={(e) => setEditExpenseMerchant(e.target.value)}
+                        placeholder="Enter merchant name"
+                        data-testid="edit-expense-merchant"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium mb-2 block">Notes</Label>
+                      <Textarea
+                        value={editExpenseNotes}
+                        onChange={(e) => setEditExpenseNotes(e.target.value)}
+                        placeholder="Add expense notes..."
+                        className="h-20 resize-none"
+                        data-testid="edit-expense-notes"
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={handleUpdateExpense}
+                        disabled={!editExpenseAmount || !editExpenseCategory || updateExpenseMutation.isPending}
+                        className="flex-1"
+                        data-testid="save-expense-edit"
+                      >
+                        {updateExpenseMutation.isPending ? 'Saving...' : 'Save Changes'}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={handleCancelEdit}
+                        className="flex-1"
+                        data-testid="cancel-expense-edit"
+                      >
+                        Cancel
+                      </Button>
+                    </div>
                   </div>
-                </div>
-                <div className="text-right">
-                  <div className="font-medium">${expense.amount.toFixed(2)}</div>
-                  {expense.receiptId && (
-                    <Badge variant="secondary" className="text-xs mt-1">
-                      Receipt
-                    </Badge>
-                  )}
-                </div>
+                ) : (
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center text-primary">
+                      {getCategoryIcon(expense.category)}
+                    </div>
+                    <div className="flex-1">
+                      <div className="font-medium">{expense.merchant || 'Unknown Merchant'}</div>
+                      <div className="text-sm text-muted-foreground">
+                        {new Date(expense.date).toLocaleDateString()} • {expense.category}
+                        {expense.notes && <span> • {expense.notes}</span>}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-medium">${expense.amount.toFixed(2)}</div>
+                      {expense.receiptId && (
+                        <Badge variant="secondary" className="text-xs mt-1">
+                          Receipt
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="flex gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleEditExpense(expense)}
+                        data-testid={`edit-expense-${expense.id}`}
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDeleteExpense(expense.id)}
+                        className="text-destructive hover:text-destructive"
+                        data-testid={`delete-expense-${expense.id}`}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
             {expenses.length === 0 && (

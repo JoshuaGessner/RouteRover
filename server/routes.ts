@@ -317,6 +317,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.patch("/api/expenses/:id", async (req, res) => {
+    try {
+      const userId = getCurrentUserId(req);
+      const expenseId = req.params.id;
+      
+      // Check if expense exists and belongs to user
+      const existingExpense = await storage.getExpense(expenseId);
+      if (!existingExpense || existingExpense.userId !== userId) {
+        return res.status(404).json({ message: "Expense not found" });
+      }
+
+      const expenseData = {
+        ...req.body,
+        ...(req.body.date && { date: new Date(req.body.date) })
+      };
+      
+      const expense = await storage.updateExpense(expenseId, expenseData);
+      res.json(expense);
+    } catch (error: any) {
+      console.error('Expense update error:', error);
+      res.status(400).json({ message: "Failed to update expense", error: error?.message || 'Unknown error' });
+    }
+  });
+
+  app.delete("/api/expenses/:id", async (req, res) => {
+    try {
+      const userId = getCurrentUserId(req);
+      const expenseId = req.params.id;
+      
+      // Check if expense exists and belongs to user
+      const existingExpense = await storage.getExpense(expenseId);
+      if (!existingExpense || existingExpense.userId !== userId) {
+        return res.status(404).json({ message: "Expense not found" });
+      }
+
+      const deleted = await storage.deleteExpense(expenseId);
+      if (deleted) {
+        res.json({ message: "Expense deleted successfully" });
+      } else {
+        res.status(404).json({ message: "Expense not found" });
+      }
+    } catch (error: any) {
+      console.error('Expense deletion error:', error);
+      res.status(500).json({ message: "Failed to delete expense", error: error?.message || 'Unknown error' });
+    }
+  });
+
   // Receipts routes
   app.get("/api/receipts", async (req, res) => {
     try {
