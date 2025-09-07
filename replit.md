@@ -1,8 +1,8 @@
-# MileTracker Pro
+# Route Rover
 
 ## Overview
 
-MileTracker Pro is a comprehensive expense and mileage tracking application designed for business professionals and freelancers. The application provides automated trip tracking, expense management, receipt processing with OCR capabilities, and schedule-based trip planning. Built as a progressive web app with a mobile-first design, it features real-time GPS tracking, Google Maps integration for route calculation, and intelligent expense categorization.
+Route Rover is a comprehensive expense and mileage tracking application designed for business professionals and freelancers. The application provides automated trip tracking, expense management, receipt processing with OCR capabilities, and schedule-based trip planning. Built as a progressive web app with a mobile-first design, it features real-time GPS tracking, Google Maps integration for route calculation, and intelligent expense categorization.
 
 ## User Preferences
 
