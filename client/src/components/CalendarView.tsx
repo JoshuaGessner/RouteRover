@@ -1,11 +1,14 @@
 import { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Calendar, momentLocalizer, View } from "react-big-calendar";
 import moment from "moment";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CalendarIcon, TrendingUp, MapPin, DollarSign } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { CalendarIcon, TrendingUp, MapPin, DollarSign, Upload, FileUp } from "lucide-react";
+import { apiRequest } from "@/lib/queryClient";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 
 const localizer = momentLocalizer(moment);
@@ -33,6 +36,10 @@ interface CalendarEvent {
 export function CalendarView() {
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [view, setView] = useState<View>('month');
+  const [activeTab, setActiveTab] = useState<'calendar' | 'import'>('calendar');
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [importData, setImportData] = useState<any>(null);
+  const queryClient = useQueryClient();
 
   const { data: scheduleData = [] } = useQuery<ScheduleEntry[]>({
     queryKey: ["/api/schedule"],
@@ -74,10 +81,65 @@ export function CalendarView() {
     };
   };
 
+  // File upload and processing mutations
+  const uploadMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData();
+      formData.append('schedule', file);
+      const response = await fetch('/api/schedule/import', {
+        method: 'POST',
+        body: formData
+      });
+      if (!response.ok) throw new Error('Upload failed');
+      return response.json();
+    },
+    onSuccess: (data) => {
+      setImportData(data);
+    }
+  });
+
+  const processMutation = useMutation({
+    mutationFn: async (processData: any) => {
+      return await apiRequest("POST", "/api/schedule/process", processData);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/schedule"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/analytics"] });
+      setImportData(null);
+      setUploadedFile(null);
+      setActiveTab('calendar');
+    }
+  });
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setUploadedFile(file);
+      uploadMutation.mutate(file);
+    }
+  };
+
+  const handleProcessSchedule = () => {
+    if (importData) {
+      processMutation.mutate({
+        data: importData.data,
+        headerMapping: importData.headerMapping,
+        mileageRate: 0.655
+      });
+    }
+  };
+
   return (
     <div className="p-4 space-y-6" data-testid="calendar-view">
-      {/* Analytics Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'calendar' | 'import')}>
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="calendar">Calendar & Analytics</TabsTrigger>
+          <TabsTrigger value="import">Import Schedule</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="calendar" className="space-y-6">
+          {/* Analytics Summary Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
@@ -234,6 +296,86 @@ export function CalendarView() {
           </CardContent>
         </Card>
       )}
+        </TabsContent>
+        
+        <TabsContent value="import" className="space-y-6">
+          <Card>
+            <CardContent className="p-6">
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-lg font-semibold mb-4">Import Schedule File</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Upload Excel or CSV files with your schedule data. The system will automatically detect existing data to prevent duplicate processing.
+                  </p>
+                </div>
+                
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                  <FileUp className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                  <div>
+                    <label htmlFor="schedule-upload" className="cursor-pointer">
+                      <Button variant="outline" asChild>
+                        <span>
+                          <Upload className="w-4 h-4 mr-2" />
+                          Choose File
+                        </span>
+                      </Button>
+                    </label>
+                    <input
+                      id="schedule-upload"
+                      type="file"
+                      accept=".xlsx,.xls,.csv"
+                      onChange={handleFileUpload}
+                      className="hidden"
+                      data-testid="schedule-file-input"
+                    />
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Supports Excel (.xlsx, .xls) and CSV (.csv) files
+                  </p>
+                </div>
+
+                {uploadedFile && (
+                  <div className="p-4 bg-muted rounded-lg">
+                    <p className="font-medium">File uploaded: {uploadedFile.name}</p>
+                  </div>
+                )}
+
+                {uploadMutation.isPending && (
+                  <div className="text-center py-4">
+                    <p className="text-sm text-muted-foreground">Processing file...</p>
+                  </div>
+                )}
+
+                {importData && (
+                  <Card>
+                    <CardContent className="p-4">
+                      <h4 className="font-medium mb-2">File Preview</h4>
+                      <p className="text-sm text-muted-foreground mb-4">
+                        Found {importData.totalRows} entries. Review the detected columns:
+                      </p>
+                      
+                      <div className="space-y-2 text-sm">
+                        <div><strong>Date Column:</strong> {importData.headerMapping.date || 'Not detected'}</div>
+                        <div><strong>Start Address:</strong> {importData.headerMapping.startAddress || 'Not detected'}</div>
+                        <div><strong>Notes:</strong> {importData.headerMapping.notes || 'Not detected'}</div>
+                      </div>
+                      
+                      <Button 
+                        onClick={handleProcessSchedule}
+                        disabled={processMutation.isPending}
+                        className="w-full mt-4"
+                        data-testid="process-schedule-btn"
+                      >
+                        {processMutation.isPending ? 'Processing...' : 'Process Schedule Data'}
+                      </Button>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

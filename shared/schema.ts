@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, real, timestamp, boolean, jsonb, index } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, real, timestamp, boolean, jsonb, integer, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -100,6 +100,15 @@ export const errorLogs = pgTable("error_logs", {
   timestamp: timestamp("timestamp").notNull(),
 });
 
+export const processedFiles = pgTable("processed_files", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id),
+  fileHash: text("file_hash").notNull(),
+  fileName: text("file_name").notNull(),
+  processedAt: timestamp("processed_at").notNull(),
+  recordCount: integer("record_count").default(0),
+});
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -136,6 +145,10 @@ export const insertErrorLogSchema = createInsertSchema(errorLogs).omit({
   id: true,
 });
 
+export const insertProcessedFileSchema = createInsertSchema(processedFiles).omit({
+  id: true,
+});
+
 // Types
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type UpsertUser = z.infer<typeof upsertUserSchema>;
@@ -152,3 +165,5 @@ export type InsertAppSettings = z.infer<typeof insertAppSettingsSchema>;
 export type AppSettings = typeof appSettings.$inferSelect;
 export type InsertErrorLog = z.infer<typeof insertErrorLogSchema>;
 export type ErrorLog = typeof errorLogs.$inferSelect;
+export type InsertProcessedFile = z.infer<typeof insertProcessedFileSchema>;
+export type ProcessedFile = typeof processedFiles.$inferSelect;

@@ -9,7 +9,7 @@ import {
   Settings 
 } from "lucide-react";
 
-type TabType = 'dashboard' | 'tracking' | 'expenses' | 'receipts' | 'schedule' | 'calendar' | 'settings';
+type TabType = 'dashboard' | 'tracking' | 'expenses' | 'schedules' | 'settings';
 
 interface BottomNavigationProps {
   activeTab: TabType;
@@ -21,9 +21,7 @@ export function BottomNavigation({ activeTab, onTabChange }: BottomNavigationPro
     { id: 'dashboard' as TabType, label: 'Dashboard', icon: Home },
     { id: 'tracking' as TabType, label: 'Tracking', icon: Route },
     { id: 'expenses' as TabType, label: 'Expenses', icon: Receipt },
-    { id: 'receipts' as TabType, label: 'Receipts', icon: Images },
-    { id: 'schedule' as TabType, label: 'Schedule', icon: Calendar },
-    { id: 'calendar' as TabType, label: 'Calendar', icon: CalendarDays },
+    { id: 'schedules' as TabType, label: 'Schedules', icon: CalendarDays },
     { id: 'settings' as TabType, label: 'Settings', icon: Settings },
   ];
 

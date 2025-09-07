@@ -359,7 +359,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/schedule/process", async (req, res) => {
     try {
-      const { data, headerMapping, mileageRate } = req.body;
+      const { data, headerMapping, mileageRate, fileHash } = req.body;
       const userId = getCurrentUserId(req);
       
       const userSettings = await storage.getUserSettings(userId);
@@ -373,6 +373,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (!defaultStartAddress) {
         return res.status(400).json({ message: "Default start address not configured in settings" });
+      }
+
+      // Check for duplicate file processing using hash
+      if (fileHash) {
+        const existingFileProcess = await storage.getProcessedFileHash(userId, fileHash);
+        if (existingFileProcess) {
+          return res.status(409).json({ 
+            message: "This file has already been processed",
+            existingData: existingFileProcess
+          });
+        }
       }
 
       // Group data by date to build daily routes

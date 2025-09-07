@@ -4,8 +4,6 @@ import { BottomNavigation } from "@/components/BottomNavigation";
 import { DashboardTab } from "@/components/tabs/Dashboard";
 import { TrackingTab } from "@/components/tabs/Tracking";
 import { ExpensesTab } from "@/components/tabs/Expenses";
-import { ReceiptsTab } from "@/components/tabs/Receipts";
-import { ScheduleTab } from "@/components/tabs/Schedule";
 import { SettingsTab } from "@/components/tabs/Settings";
 import { CalendarView } from "@/components/CalendarView";
 import { Button } from "@/components/ui/button";
@@ -17,7 +15,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Plus, MapPin, Receipt, FileUp, Camera } from "lucide-react";
 
-type TabType = 'dashboard' | 'tracking' | 'expenses' | 'receipts' | 'schedule' | 'calendar' | 'settings';
+type TabType = 'dashboard' | 'tracking' | 'expenses' | 'schedules' | 'settings';
 
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState<TabType>('dashboard');
@@ -30,11 +28,7 @@ export default function Dashboard() {
         return <TrackingTab />;
       case 'expenses':
         return <ExpensesTab />;
-      case 'receipts':
-        return <ReceiptsTab />;
-      case 'schedule':
-        return <ScheduleTab />;
-      case 'calendar':
+      case 'schedules':
         return <CalendarView />;
       case 'settings':
         return <SettingsTab />;
@@ -78,14 +72,14 @@ export default function Dashboard() {
             Add Expense
           </DropdownMenuItem>
           <DropdownMenuItem
-            onClick={() => setActiveTab('receipts')}
+            onClick={() => setActiveTab('expenses')}
             data-testid="fab-scan-receipt"
           >
             <Camera className="w-4 h-4 mr-2" />
             Scan Receipt
           </DropdownMenuItem>
           <DropdownMenuItem
-            onClick={() => setActiveTab('schedule')}
+            onClick={() => setActiveTab('schedules')}
             data-testid="fab-import-schedule"
           >
             <FileUp className="w-4 h-4 mr-2" />
