@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Progress } from "@/components/ui/progress";
 import { CalendarIcon, TrendingUp, MapPin, DollarSign, Upload, FileUp, BarChart3, PieChart, Activity, Download } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import "react-big-calendar/lib/css/react-big-calendar.css";
@@ -51,6 +52,8 @@ export function CalendarView() {
   const [activeTab, setActiveTab] = useState<'calendar' | 'import'>('calendar');
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [importData, setImportData] = useState<any>(null);
+  const [processingProgress, setProcessingProgress] = useState(0);
+  const [processingStatus, setProcessingStatus] = useState('');
   const queryClient = useQueryClient();
 
   const { data: scheduleData = [] } = useQuery<ScheduleEntry[]>({
@@ -157,8 +160,45 @@ export function CalendarView() {
       setImportData(null);
       setUploadedFile(null);
       setActiveTab('calendar');
+      setProcessingProgress(0);
+      setProcessingStatus('');
     }
   });
+
+  // Progress simulation during processing
+  useEffect(() => {
+    if (processMutation.isPending) {
+      setProcessingProgress(0);
+      setProcessingStatus('Starting route calculations...');
+      
+      const interval = setInterval(() => {
+        setProcessingProgress(prev => {
+          const next = prev + Math.random() * 8 + 2; // Increment by 2-10% each time
+          if (next >= 95) {
+            setProcessingStatus('Finalizing schedule entries...');
+            return 95; // Cap at 95% until actually complete
+          } else if (next >= 80) {
+            setProcessingStatus('Processing final routes...');
+            return next;
+          } else if (next >= 50) {
+            setProcessingStatus('Calculating distances and costs...');
+            return next;
+          } else if (next >= 20) {
+            setProcessingStatus('Calling Google Maps API...');
+            return next;
+          } else {
+            setProcessingStatus('Analyzing schedule data...');
+            return next;
+          }
+        });
+      }, 2000); // Update every 2 seconds
+
+      return () => clearInterval(interval);
+    } else {
+      setProcessingProgress(0);
+      setProcessingStatus('');
+    }
+  }, [processMutation.isPending]);
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -655,6 +695,33 @@ export function CalendarView() {
                   <div className="text-center py-4">
                     <p className="text-sm text-muted-foreground">Processing file...</p>
                   </div>
+                )}
+
+                {processMutation.isPending && (
+                  <Card className="bg-blue-50 border-blue-200">
+                    <CardContent className="p-6">
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <h4 className="font-medium text-blue-900">Processing Schedule</h4>
+                          <span className="text-sm text-blue-700">{Math.round(processingProgress)}%</span>
+                        </div>
+                        
+                        <Progress value={processingProgress} className="h-2" />
+                        
+                        <div className="space-y-2">
+                          <p className="text-sm text-blue-800">{processingStatus}</p>
+                          <p className="text-xs text-blue-600">
+                            Estimated time: {processingProgress < 95 ? `${Math.max(1, Math.round((100 - processingProgress) * 0.6))} minutes` : 'Almost done!'}
+                          </p>
+                        </div>
+                        
+                        <div className="flex items-center gap-2 text-xs text-blue-600">
+                          <Activity className="w-3 h-3 animate-pulse" />
+                          <span>Please wait while we calculate routes and distances...</span>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
                 )}
 
                 {importData && (
