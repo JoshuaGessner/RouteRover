@@ -990,49 +990,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return acc;
       }, {} as Record<string, {distance: number, amount: number, days: number}>);
 
-      // Group by year for yearly analytics
-      const yearlyData = scheduleEntries.reduce((acc, entry) => {
-        const year = new Date(entry.date).getFullYear().toString();
-        if (!acc[year]) {
-          acc[year] = { distance: 0, amount: 0, days: 0 };
-        }
-        acc[year].distance += entry.calculatedDistance || 0;
-        acc[year].amount += entry.calculatedAmount || 0;
-        acc[year].days += 1;
-        return acc;
-      }, {} as Record<string, {distance: number, amount: number, days: number}>);
-
-      // Calculate current month and year analytics
-      const currentDate = new Date();
-      const currentMonth = currentDate.toISOString().slice(0, 7);
-      const currentYear = currentDate.getFullYear().toString();
-      
-      const thisMonthData = monthlyData[currentMonth] || { distance: 0, amount: 0, days: 0 };
-      const thisYearData = yearlyData[currentYear] || { distance: 0, amount: 0, days: 0 };
-
       res.json({
         totalDistance,
         totalAmount,
         tripDays,
         avgDailyDistance,
-        thisMonth: {
-          ...thisMonthData,
-          avgDistance: thisMonthData.days > 0 ? thisMonthData.distance / thisMonthData.days : 0
-        },
-        thisYear: {
-          ...thisYearData,
-          avgDistance: thisYearData.days > 0 ? thisYearData.distance / thisYearData.days : 0
-        },
         monthlyTrends: Object.entries(monthlyData).map(([month, data]) => ({
           month,
           ...data,
           avgDistance: data.days > 0 ? data.distance / data.days : 0
-        })).sort((a, b) => a.month.localeCompare(b.month)),
-        yearlyTrends: Object.entries(yearlyData).map(([year, data]) => ({
-          year,
-          ...data,
-          avgDistance: data.days > 0 ? data.distance / data.days : 0
-        })).sort((a, b) => a.year.localeCompare(b.year))
+        }))
       });
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch analytics" });

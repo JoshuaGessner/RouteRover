@@ -2,41 +2,8 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { MapPin, Clock, DollarSign, TrendingUp, Calendar } from "lucide-react";
+import { MapPin, Clock, DollarSign } from "lucide-react";
 import type { Trip, Expense } from "@shared/schema";
-
-interface AnalyticsData {
-  totalDistance: number;
-  totalAmount: number;
-  tripDays: number;
-  avgDailyDistance: number;
-  thisMonth: {
-    distance: number;
-    amount: number;
-    days: number;
-    avgDistance: number;
-  };
-  thisYear: {
-    distance: number;
-    amount: number;
-    days: number;
-    avgDistance: number;
-  };
-  monthlyTrends: Array<{
-    month: string;
-    distance: number;
-    amount: number;
-    days: number;
-    avgDistance: number;
-  }>;
-  yearlyTrends: Array<{
-    year: string;
-    distance: number;
-    amount: number;
-    days: number;
-    avgDistance: number;
-  }>;
-}
 
 export function DashboardTab() {
   const { data: trips = [] } = useQuery<Trip[]>({
@@ -49,10 +16,6 @@ export function DashboardTab() {
 
   const { data: activeTrip } = useQuery<Trip | null>({
     queryKey: ["/api/trips/active"],
-  });
-
-  const { data: analytics } = useQuery<AnalyticsData>({
-    queryKey: ["/api/analytics"],
   });
 
   // Calculate today's summary
@@ -139,78 +102,6 @@ export function DashboardTab() {
               <Clock className="w-4 h-4 mr-2" />
               Stop Trip
             </Button>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Monthly Analytics */}
-      {analytics?.thisMonth && (
-        <Card data-testid="monthly-analytics">
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-2 mb-4">
-              <Calendar className="w-5 h-5 text-primary" />
-              <h2 className="text-lg font-semibold">This Month (Schedule)</h2>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-primary" data-testid="month-miles">
-                  {analytics.thisMonth.distance?.toFixed(1) || '0.0'}
-                </div>
-                <div className="text-sm text-muted-foreground">Miles</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-accent" data-testid="month-amount">
-                  ${analytics.thisMonth.amount?.toFixed(2) || '0.00'}
-                </div>
-                <div className="text-sm text-muted-foreground">Mileage Deduction</div>
-              </div>
-            </div>
-            <div className="mt-4 pt-4 border-t border-border grid grid-cols-2 gap-4 text-sm">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Trip days:</span>
-                <span className="font-medium" data-testid="month-days">{analytics.thisMonth.days || 0}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Avg daily:</span>
-                <span className="font-medium" data-testid="month-avg">{analytics.thisMonth.avgDistance?.toFixed(1) || '0.0'} mi</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Yearly Analytics */}
-      {analytics?.thisYear && (
-        <Card data-testid="yearly-analytics">
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-2 mb-4">
-              <TrendingUp className="w-5 h-5 text-primary" />
-              <h2 className="text-lg font-semibold">This Year (Schedule)</h2>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-primary" data-testid="year-miles">
-                  {analytics.thisYear.distance?.toFixed(1) || '0.0'}
-                </div>
-                <div className="text-sm text-muted-foreground">Miles</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-accent" data-testid="year-amount">
-                  ${analytics.thisYear.amount?.toFixed(2) || '0.00'}
-                </div>
-                <div className="text-sm text-muted-foreground">Mileage Deduction</div>
-              </div>
-            </div>
-            <div className="mt-4 pt-4 border-t border-border grid grid-cols-2 gap-4 text-sm">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Trip days:</span>
-                <span className="font-medium" data-testid="year-days">{analytics.thisYear.days || 0}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Avg daily:</span>
-                <span className="font-medium" data-testid="year-avg">{analytics.thisYear.avgDistance?.toFixed(1) || '0.0'} mi</span>
-              </div>
-            </div>
           </CardContent>
         </Card>
       )}
