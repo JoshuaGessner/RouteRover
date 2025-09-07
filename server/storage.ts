@@ -20,7 +20,10 @@ import {
   type AppSettings,
   type InsertAppSettings,
   type ErrorLog,
-  type InsertErrorLog
+  type InsertErrorLog,
+  type ProcessedFile,
+  type InsertProcessedFile,
+  processedFiles
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and } from "drizzle-orm";
@@ -70,6 +73,10 @@ export interface IStorage {
   // Error Logs
   getErrorLogs(userId: string): Promise<ErrorLog[]>;
   createErrorLog(log: InsertErrorLog): Promise<ErrorLog>;
+  
+  // File processing redundancy
+  getProcessedFileHash(userId: string, fileHash: string): Promise<ProcessedFile | undefined>;
+  createProcessedFile(file: InsertProcessedFile): Promise<ProcessedFile>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -276,6 +283,20 @@ export class DatabaseStorage implements IStorage {
     const [log] = await db.insert(errorLogs).values(insertLog).returning();
     return log;
   }
+
+  // Processed Files (for redundancy checking)
+  async getProcessedFileHash(userId: string, fileHash: string): Promise<ProcessedFile | undefined> {
+    const [file] = await db
+      .select()
+      .from(processedFiles)
+      .where(and(eq(processedFiles.userId, userId), eq(processedFiles.fileHash, fileHash)));
+    return file || undefined;
+  }
+
+  async createProcessedFile(insertFile: InsertProcessedFile): Promise<ProcessedFile> {
+    const [file] = await db.insert(processedFiles).values(insertFile).returning();
+    return file;
+  }
 }
 
 // Fallback MemStorage for development/testing
@@ -287,6 +308,7 @@ class MemStorage implements IStorage {
   private scheduleEntries: Map<string, ScheduleEntry>;
   private appSettings: Map<string, AppSettings>;
   private errorLogs: Map<string, ErrorLog>;
+  private processedFiles: Map<string, ProcessedFile>;
 
   constructor() {
     this.users = new Map();
@@ -296,6 +318,7 @@ class MemStorage implements IStorage {
     this.scheduleEntries = new Map();
     this.appSettings = new Map();
     this.errorLogs = new Map();
+    this.processedFiles = new Map();
   }
 
   // Users for custom authentication
@@ -574,6 +597,27 @@ class MemStorage implements IStorage {
     };
     this.errorLogs.set(id, log);
     return log;
+  }
+
+  // Processed Files (for redundancy checking)
+  async getProcessedFileHash(userId: string, fileHash: string): Promise<ProcessedFile | undefined> {
+    const key = `${userId}-${fileHash}`;
+    return this.processedFiles.get(key);
+  }
+
+  async createProcessedFile(insertFile: InsertProcessedFile): Promise<ProcessedFile> {
+    const id = randomUUID();
+    const file: ProcessedFile = {
+      id,
+      userId: insertFile.userId,
+      fileHash: insertFile.fileHash,
+      fileName: insertFile.fileName,
+      processedAt: insertFile.processedAt,
+      recordCount: insertFile.recordCount || 0
+    };
+    const key = `${insertFile.userId}-${insertFile.fileHash}`;
+    this.processedFiles.set(key, file);
+    return file;
   }
 }
 

@@ -90,7 +90,10 @@ export function CalendarView() {
         method: 'POST',
         body: formData
       });
-      if (!response.ok) throw new Error('Upload failed');
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Upload failed');
+      }
       return response.json();
     },
     onSuccess: (data) => {
@@ -120,12 +123,22 @@ export function CalendarView() {
   };
 
   const handleProcessSchedule = () => {
-    if (importData) {
-      processMutation.mutate({
-        data: importData.data,
-        headerMapping: importData.headerMapping,
-        mileageRate: 0.655
-      });
+    if (importData && uploadedFile) {
+      // Calculate file hash for redundancy checking
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const content = e.target?.result as string;
+        const hash = btoa(content).substring(0, 32); // Simple hash for demo
+        
+        processMutation.mutate({
+          data: importData.data,
+          headerMapping: importData.headerMapping,
+          mileageRate: 0.655,
+          fileHash: hash,
+          fileName: uploadedFile.name
+        });
+      };
+      reader.readAsText(uploadedFile);
     }
   };
 

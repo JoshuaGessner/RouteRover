@@ -381,14 +381,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (existingFileProcess) {
           return res.status(409).json({ 
             message: "This file has already been processed",
-            existingData: existingFileProcess
+            processedAt: existingFileProcess.processedAt,
+            recordCount: existingFileProcess.recordCount
           });
         }
       }
 
-      // Group data by date to build daily routes
-      const entriesByDate = new Map();
+      // Check for existing data in date ranges to avoid unnecessary API calls
+      const dateRanges = new Map();
       for (const row of data) {
+        const date = new Date(row[headerMapping.date]);
+        if (!isNaN(date.getTime())) {
+          const dateStr = date.toISOString().split('T')[0];
+          if (!dateRanges.has(dateStr)) {
+            dateRanges.set(dateStr, []);
+          }
+          dateRanges.get(dateStr).push(row);
+        }
+      }
+
+      // Filter out dates that already have complete data
+      const existingSchedule = await storage.getScheduleEntries(userId);
+      const existingDates = new Set(existingSchedule.map(entry => 
+        new Date(entry.date).toISOString().split('T')[0]
+      ));
+      
+      let newDataCount = 0;
+      const filteredDateRanges = new Map();
+      for (const [dateStr, entries] of dateRanges) {
+        if (!existingDates.has(dateStr)) {
+          filteredDateRanges.set(dateStr, entries);
+          newDataCount += entries.length;
+        }
+      }
+
+      if (filteredDateRanges.size === 0) {
+        return res.status(409).json({
+          message: "All dates in this file have already been processed",
+          skippedCount: data.length
+        });
+      }
+
+      // Use filtered data to build daily routes, only processing new dates
+      const entriesByDate = new Map();
+      for (const [dateStr, entries] of filteredDateRanges) {
+        for (const row of entries) {
         const rawDate = row[headerMapping.date];
         // Handle Excel date format (numeric days since 1900-01-01) 
         let parsedDate: Date;
