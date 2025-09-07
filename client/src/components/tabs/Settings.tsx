@@ -303,7 +303,7 @@ export function SettingsTab() {
               </div>
               <div className="flex items-center gap-2">
                 <Badge variant="destructive" className="text-xs">
-                  {errorLogs.length} errors
+                  {Array.isArray(errorLogs) ? errorLogs.length : 0} errors
                 </Badge>
                 <ExternalLink className="w-4 h-4" />
               </div>

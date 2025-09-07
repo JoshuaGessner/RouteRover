@@ -139,15 +139,14 @@ export class DatabaseStorage implements IStorage {
 
   async deleteTrip(id: string): Promise<boolean> {
     const result = await db.delete(trips).where(eq(trips.id, id));
-    return result.rowCount > 0;
+    return (result.rowCount || 0) > 0;
   }
 
   async getActiveTrip(userId: string): Promise<Trip | undefined> {
     const [trip] = await db
       .select()
       .from(trips)
-      .where(eq(trips.userId, userId))
-      .where(eq(trips.isActive, true));
+      .where(eq(trips.userId, userId) && eq(trips.isActive, true));
     return trip;
   }
 
@@ -177,7 +176,7 @@ export class DatabaseStorage implements IStorage {
 
   async deleteExpense(id: string): Promise<boolean> {
     const result = await db.delete(expenses).where(eq(expenses.id, id));
-    return result.rowCount > 0;
+    return (result.rowCount || 0) > 0;
   }
 
   // Receipts
@@ -206,7 +205,7 @@ export class DatabaseStorage implements IStorage {
 
   async deleteReceipt(id: string): Promise<boolean> {
     const result = await db.delete(receipts).where(eq(receipts.id, id));
-    return result.rowCount > 0;
+    return (result.rowCount || 0) > 0;
   }
 
   // Schedule Entries
@@ -235,7 +234,7 @@ export class DatabaseStorage implements IStorage {
 
   async deleteScheduleEntry(id: string): Promise<boolean> {
     const result = await db.delete(scheduleEntries).where(eq(scheduleEntries.id, id));
-    return result.rowCount > 0;
+    return (result.rowCount || 0) > 0;
   }
 
   // App Settings
@@ -291,9 +290,44 @@ class MemStorage implements IStorage {
     this.errorLogs = new Map();
   }
 
-  // Users for Replit Auth
+  // Users for custom authentication
   async getUser(id: string): Promise<User | undefined> {
     return this.users.get(id);
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    for (const user of this.users.values()) {
+      if (user.username === username) {
+        return user;
+      }
+    }
+    return undefined;
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    if (!email) return undefined;
+    for (const user of this.users.values()) {
+      if (user.email === email) {
+        return user;
+      }
+    }
+    return undefined;
+  }
+
+  async createUser(userData: InsertUser): Promise<User> {
+    const id = randomUUID();
+    const user: User = {
+      id,
+      username: userData.username,
+      email: userData.email || null,
+      password: userData.password,
+      firstName: userData.firstName || null,
+      lastName: userData.lastName || null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.users.set(id, user);
+    return user;
   }
 
   async upsertUser(userData: UpsertUser): Promise<User> {
@@ -305,7 +339,13 @@ class MemStorage implements IStorage {
       return updated;
     } else {
       const id = userData.id || randomUUID();
-      const user: User = { ...userData, id, createdAt: new Date(), updatedAt: new Date() };
+      const user: User = { 
+        ...userData, 
+        id, 
+        email: userData.email || null,
+        createdAt: new Date(), 
+        updatedAt: new Date() 
+      };
       this.users.set(id, user);
       return user;
     }
