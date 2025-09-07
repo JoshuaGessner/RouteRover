@@ -299,7 +299,7 @@ export function SettingsTab() {
               <div className="space-y-2">
                 <div className="flex justify-between text-xs text-muted-foreground">
                   <span>Google Directions API</span>
-                  <span>{apiUsage ? `$${apiUsage.totalCost.toFixed(3)}` : '$0.000'}</span>
+                  <span>{apiUsage ? `${apiUsage.totalCalls} requests` : '0 requests'}</span>
                 </div>
                 <Progress 
                   value={apiUsage ? Math.min((apiUsage.totalCalls / 40000) * 100, 100) : 0} 

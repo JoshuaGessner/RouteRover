@@ -711,7 +711,7 @@ export function CalendarView() {
                         <div className="space-y-2">
                           <p className="text-sm text-blue-800">{processingStatus}</p>
                           <p className="text-xs text-blue-600">
-                            Estimated time: {processingProgress < 95 ? `${Math.max(1, Math.round((100 - processingProgress) * 0.6))} minutes` : 'Almost done!'}
+                            Estimated time: {processingProgress < 95 ? `${Math.max(5, Math.round((100 - processingProgress) * 0.8))} seconds` : 'Almost done!'}
                           </p>
                         </div>
                         
