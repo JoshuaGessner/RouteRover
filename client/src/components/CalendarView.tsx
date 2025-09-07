@@ -359,7 +359,31 @@ export function CalendarView() {
           <Button 
             variant="outline" 
             size="sm"
-            onClick={() => window.open('/api/export/schedule', '_blank')}
+            onClick={async () => {
+              try {
+                const response = await fetch('/api/export/schedule', {
+                  method: 'GET',
+                  credentials: 'include'
+                });
+                
+                if (!response.ok) {
+                  throw new Error('Export failed');
+                }
+                
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `route-rover-schedule-report-${new Date().toISOString().slice(0, 10)}.xlsx`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+              } catch (error) {
+                console.error('Export failed:', error);
+                alert('Failed to export schedule data. Please try again.');
+              }
+            }}
             data-testid="export-schedule"
             className="w-full sm:w-auto"
           >

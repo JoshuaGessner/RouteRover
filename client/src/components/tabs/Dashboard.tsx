@@ -30,8 +30,30 @@ export function DashboardTab() {
   const totalMiles = todayTrips.reduce((sum, trip) => sum + (trip.distance || 0), 0);
   const totalExpenses = todayExpenses.reduce((sum, expense) => sum + expense.amount, 0);
 
-  const handleExportData = () => {
-    window.open('/api/export/routes', '_blank');
+  const handleExportData = async () => {
+    try {
+      const response = await fetch('/api/export/routes', {
+        method: 'GET',
+        credentials: 'include'
+      });
+      
+      if (!response.ok) {
+        throw new Error('Export failed');
+      }
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `route-rover-routes-report-${new Date().toISOString().slice(0, 10)}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('Export failed:', error);
+      alert('Failed to export routes data. Please try again.');
+    }
   };
 
   return (
