@@ -178,7 +178,8 @@ export function CalendarView() {
         headerMapping: importData.headerMapping,
         mileageRate: 0.655,
         fileHash: hash,
-        fileName: uploadedFile.name
+        fileName: uploadedFile.name,
+        forceReprocess: true // Allow reprocessing during development
       });
     }
   };

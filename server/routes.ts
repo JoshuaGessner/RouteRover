@@ -596,7 +596,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/schedule/process", isAuthenticated, async (req, res) => {
     try {
-      const { data, headerMapping, mileageRate, fileHash, fileName } = req.body;
+      const { data, headerMapping, mileageRate, fileHash, fileName, forceReprocess } = req.body;
       const userId = getCurrentUserId(req);
       
       const userSettings = await storage.getUserSettings(userId);
@@ -612,8 +612,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Default start address not configured in settings" });
       }
 
-      // Check for duplicate file processing using hash
-      if (fileHash) {
+      // Check for duplicate file processing using hash (unless forcing reprocess)
+      if (fileHash && !forceReprocess) {
         const existingFileProcess = await storage.getProcessedFileHash(userId, fileHash);
         if (existingFileProcess) {
           return res.status(409).json({ 
@@ -652,11 +652,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      if (filteredDateRanges.size === 0) {
+      if (filteredDateRanges.size === 0 && !forceReprocess) {
         return res.status(409).json({
           message: "All dates in this file have already been processed",
           skippedCount: data.length
         });
+      }
+      
+      // If forcing reprocess, use all data regardless of existing entries
+      if (forceReprocess) {
+        filteredDateRanges.clear();
+        newDataCount = 0;
+        for (const [dateStr, entries] of Array.from(dateRanges)) {
+          filteredDateRanges.set(dateStr, entries);
+          newDataCount += entries.length;
+        }
       }
 
       // Use filtered data to build daily routes, only processing new dates
