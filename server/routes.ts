@@ -541,6 +541,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // New endpoint for local storage mode - OCR processing only
+  app.post("/api/receipts/process-ocr", isAuthenticated, uploadImages.single('image'), async (req: MulterRequest, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "No image file provided" });
+      }
+
+      const userId = getCurrentUserId(req);
+      const receiptId = req.body.receiptId;
+      const isLocalOnly = req.body.localOnly === 'true';
+      
+      // Sanitize file path to prevent path traversal
+      const sanitizedPath = sanitizeFilePath(req.file.path);
+      const { ocrText, extractedData } = await processReceiptOCR(sanitizedPath, userId);
+      
+      if (isLocalOnly) {
+        // For local storage mode, save receipt record with local image reference
+        const receiptData = insertReceiptSchema.parse({
+          userId,
+          imageUrl: `local:${receiptId}`, // Special URL format for local images
+          ocrText,
+          extractedData,
+          uploadDate: new Date()
+        });
+
+        const receipt = await storage.createReceipt(receiptData);
+        
+        // Clean up temporary server file since we're not storing it
+        fs.unlinkSync(req.file.path);
+        
+        res.json(receipt);
+      } else {
+        // Fallback to original behavior for compatibility
+        const receiptData = insertReceiptSchema.parse({
+          userId,
+          imageUrl: `/uploads/${req.file.filename}`,
+          ocrText,
+          extractedData,
+          uploadDate: new Date()
+        });
+
+        const receipt = await storage.createReceipt(receiptData);
+        res.json(receipt);
+      }
+    } catch (error) {
+      console.error('Failed to process receipt OCR:', error);
+      // Clean up temporary file if it exists
+      if (req.file && fs.existsSync(req.file.path)) {
+        fs.unlinkSync(req.file.path);
+      }
+      res.status(500).json({ message: "Failed to process receipt" });
+    }
+  });
+
   app.post("/api/receipts", isAuthenticated, uploadImages.single('image'), async (req: MulterRequest, res) => {
     try {
       if (!req.file) {
