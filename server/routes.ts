@@ -1,13 +1,19 @@
-import type { Express } from "express";
+import type { Express, Request } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { setupAuth, isAuthenticated } from "./replitAuth";
 import { insertTripSchema, insertExpenseSchema, insertReceiptSchema, insertScheduleEntrySchema, insertAppSettingsSchema, insertErrorLogSchema } from "@shared/schema";
 import multer from "multer";
-import { Worker } from "tesseract.js";
+import Tesseract from "tesseract.js";
 import * as XLSX from "xlsx";
 import { parse } from "csv-parse/sync";
 import fs from "fs";
 import path from "path";
+
+// Extend Request interface for multer
+interface MulterRequest extends Request {
+  file?: Express.Multer.File;
+}
 
 const upload = multer({ 
   dest: "uploads/",
@@ -41,9 +47,7 @@ async function calculateRoute(startAddress: string, endAddress: string, apiKey: 
 
 // OCR processing
 async function processReceiptOCR(imagePath: string) {
-  const worker = await Tesseract.createWorker();
-  await worker.loadLanguage('eng');
-  await worker.initialize('eng');
+  const worker = await Tesseract.createWorker('eng');
   
   const { data: { text } } = await worker.recognize(imagePath);
   await worker.terminate();
@@ -151,13 +155,31 @@ function detectHotelStay(notes: string): boolean {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Dummy user for session simulation
-  const DEMO_USER_ID = "demo-user-123";
+  // Auth middleware
+  await setupAuth(app);
+
+  // Auth routes
+  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      res.json(user);
+    } catch (error) {
+      console.error("Error fetching user:", error);
+      res.status(500).json({ message: "Failed to fetch user" });
+    }
+  });
+
+  // Helper function to get current user ID
+  const getCurrentUserId = (req: any): string => {
+    return req.user?.claims?.sub || "demo-user-123"; // Fallback for testing
+  };
   
   // Trips routes
   app.get("/api/trips", async (req, res) => {
     try {
-      const trips = await storage.getTrips(DEMO_USER_ID);
+      const userId = getCurrentUserId(req);
+      const trips = await storage.getTrips(userId);
       res.json(trips);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch trips" });
@@ -166,7 +188,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/trips", async (req, res) => {
     try {
-      const validatedData = insertTripSchema.parse({ ...req.body, userId: DEMO_USER_ID });
+      const userId = getCurrentUserId(req);
+      const validatedData = insertTripSchema.parse({ ...req.body, userId });
       const trip = await storage.createTrip(validatedData);
       res.json(trip);
     } catch (error) {
@@ -188,7 +211,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/trips/active", async (req, res) => {
     try {
-      const activeTrip = await storage.getActiveTrip(DEMO_USER_ID);
+      const userId = getCurrentUserId(req);
+      const activeTrip = await storage.getActiveTrip(userId);
       res.json(activeTrip);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch active trip" });
@@ -198,7 +222,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Expenses routes
   app.get("/api/expenses", async (req, res) => {
     try {
-      const expenses = await storage.getExpenses(DEMO_USER_ID);
+      const userId = getCurrentUserId(req);
+      const expenses = await storage.getExpenses(userId);
       res.json(expenses);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch expenses" });
@@ -207,7 +232,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/expenses", async (req, res) => {
     try {
-      const validatedData = insertExpenseSchema.parse({ ...req.body, userId: DEMO_USER_ID });
+      const userId = getCurrentUserId(req);
+      const validatedData = insertExpenseSchema.parse({ ...req.body, userId });
       const expense = await storage.createExpense(validatedData);
       res.json(expense);
     } catch (error) {
@@ -218,23 +244,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Receipts routes
   app.get("/api/receipts", async (req, res) => {
     try {
-      const receipts = await storage.getReceipts(DEMO_USER_ID);
+      const userId = getCurrentUserId(req);
+      const receipts = await storage.getReceipts(userId);
       res.json(receipts);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch receipts" });
     }
   });
 
-  app.post("/api/receipts", upload.single('image'), async (req, res) => {
+  app.post("/api/receipts", upload.single('image'), async (req: MulterRequest, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ message: "No image file provided" });
       }
 
       const { ocrText, extractedData } = await processReceiptOCR(req.file.path);
+      const userId = getCurrentUserId(req);
       
       const receiptData = insertReceiptSchema.parse({
-        userId: DEMO_USER_ID,
+        userId,
         imageUrl: `/uploads/${req.file.filename}`,
         ocrText,
         extractedData,
@@ -255,14 +283,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Schedule routes
   app.get("/api/schedule", async (req, res) => {
     try {
-      const entries = await storage.getScheduleEntries(DEMO_USER_ID);
+      const userId = getCurrentUserId(req);
+      const entries = await storage.getScheduleEntries(userId);
       res.json(entries);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch schedule entries" });
     }
   });
 
-  app.post("/api/schedule/import", upload.single('file'), async (req, res) => {
+  app.post("/api/schedule/import", upload.single('file'), async (req: MulterRequest, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ message: "No file provided" });
@@ -287,8 +316,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/schedule/process", async (req, res) => {
     try {
       const { data, headerMapping, mileageRate } = req.body;
+      const userId = getCurrentUserId(req);
       
-      const userSettings = await storage.getUserSettings(DEMO_USER_ID);
+      const userSettings = await storage.getUserSettings(userId);
       const apiKey = userSettings?.googleApiKey;
       
       if (!apiKey) {
@@ -309,7 +339,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const calculatedAmount = routeInfo.distance * (mileageRate || 0.655);
           
           const entry = await storage.createScheduleEntry({
-            userId: DEMO_USER_ID,
+            userId,
             date,
             startAddress: routeInfo.startAddress,
             endAddress: routeInfo.endAddress,
@@ -324,7 +354,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           results.push(entry);
         } catch (error) {
           const errorEntry = await storage.createScheduleEntry({
-            userId: DEMO_USER_ID,
+            userId,
             date: new Date(row[headerMapping.date]),
             startAddress: row[headerMapping.startAddress],
             endAddress: row[headerMapping.endAddress],
@@ -338,7 +368,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           // Log error
           await storage.createErrorLog({
-            userId: DEMO_USER_ID,
+            userId,
             errorType: 'route_calculation',
             errorMessage: error instanceof Error ? error.message : 'Unknown error',
             context: { startAddress: row[headerMapping.startAddress], endAddress: row[headerMapping.endAddress] },
@@ -356,7 +386,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Settings routes
   app.get("/api/settings", async (req, res) => {
     try {
-      const settings = await storage.getUserSettings(DEMO_USER_ID);
+      const userId = getCurrentUserId(req);
+      const settings = await storage.getUserSettings(userId);
       res.json(settings);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch settings" });
@@ -365,7 +396,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/settings", async (req, res) => {
     try {
-      const validatedData = insertAppSettingsSchema.parse({ ...req.body, userId: DEMO_USER_ID });
+      const userId = getCurrentUserId(req);
+      const validatedData = insertAppSettingsSchema.parse({ ...req.body, userId });
       const settings = await storage.createOrUpdateSettings(validatedData);
       res.json(settings);
     } catch (error) {
@@ -376,7 +408,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Error logs route
   app.get("/api/error-logs", async (req, res) => {
     try {
-      const logs = await storage.getErrorLogs(DEMO_USER_ID);
+      const userId = getCurrentUserId(req);
+      const logs = await storage.getErrorLogs(userId);
       res.json(logs);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch error logs" });
@@ -386,10 +419,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Export data route
   app.get("/api/export", async (req, res) => {
     try {
-      const trips = await storage.getTrips(DEMO_USER_ID);
-      const expenses = await storage.getExpenses(DEMO_USER_ID);
-      const receipts = await storage.getReceipts(DEMO_USER_ID);
-      const schedule = await storage.getScheduleEntries(DEMO_USER_ID);
+      const userId = getCurrentUserId(req);
+      const trips = await storage.getTrips(userId);
+      const expenses = await storage.getExpenses(userId);
+      const receipts = await storage.getReceipts(userId);
+      const schedule = await storage.getScheduleEntries(userId);
       
       const exportData = {
         trips,
