@@ -364,48 +364,112 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const userSettings = await storage.getUserSettings(userId);
       const apiKey = userSettings?.googleApiKey;
+      const defaultStartAddress = userSettings?.defaultStartAddress;
+      const defaultEndAddress = userSettings?.defaultEndAddress || defaultStartAddress;
       
       if (!apiKey) {
         return res.status(400).json({ message: "Google API key not configured" });
       }
 
-      const results = [];
-      
+      if (!defaultStartAddress) {
+        return res.status(400).json({ message: "Default start address not configured in settings" });
+      }
+
+      // Group data by date to build daily routes
+      const entriesByDate = new Map();
       for (const row of data) {
+        const date = new Date(row[headerMapping.date]).toDateString();
+        if (!entriesByDate.has(date)) {
+          entriesByDate.set(date, []);
+        }
+        entriesByDate.get(date).push(row);
+      }
+
+      const results = [];
+      let previousHotelAddress = null;
+      
+      // Process each day to build daily routes
+      for (const [dateString, dayEntries] of entriesByDate) {
         try {
-          const startAddress = row[headerMapping.startAddress];
-          const endAddress = row[headerMapping.endAddress];
-          const date = new Date(row[headerMapping.date]);
-          const notes = row[headerMapping.notes] || '';
+          const date = new Date(dateString);
+          let dayStartAddress = previousHotelAddress || defaultStartAddress;
+          let dayEndAddress = defaultEndAddress;
+          let totalDayDistance = 0;
+          let hasHotelStay = false;
+          let hotelAddress = null;
+
+          // Build the route for this day: start -> locations -> end
+          const locations = dayEntries.map(row => ({
+            address: row[headerMapping.startAddress],
+            notes: row[headerMapping.notes] || '',
+            originalData: row
+          }));
+
+          // Check for hotel stays
+          for (const location of locations) {
+            if (detectHotelStay(location.notes)) {
+              hasHotelStay = true;
+              hotelAddress = location.address;
+              dayEndAddress = location.address; // End at hotel
+              break;
+            }
+          }
+
+          // Calculate total route: start -> all locations -> end
+          if (locations.length > 0) {
+            let currentLocation = dayStartAddress;
+            
+            // Calculate route to each location
+            for (const location of locations) {
+              if (currentLocation !== location.address) {
+                const routeInfo = await calculateRoute(currentLocation, location.address, apiKey);
+                totalDayDistance += routeInfo.distance;
+              }
+              currentLocation = location.address;
+            }
+            
+            // Calculate route back to end address (if different from last location)
+            if (currentLocation !== dayEndAddress && !hasHotelStay) {
+              const routeInfo = await calculateRoute(currentLocation, dayEndAddress, apiKey);
+              totalDayDistance += routeInfo.distance;
+            }
+          }
+
+          const calculatedAmount = totalDayDistance * (mileageRate || 0.655);
           
-          const routeInfo = await calculateRoute(startAddress, endAddress, apiKey);
-          const isHotelStay = detectHotelStay(notes);
-          const calculatedAmount = routeInfo.distance * (mileageRate || 0.655);
-          
+          // Create a single schedule entry for the whole day
           const entry = await storage.createScheduleEntry({
             userId,
             date,
-            startAddress: routeInfo.startAddress,
-            endAddress: routeInfo.endAddress,
-            notes,
-            calculatedDistance: routeInfo.distance,
+            startAddress: dayStartAddress,
+            endAddress: dayEndAddress,
+            notes: `Daily route: ${locations.map(l => l.address).join(' → ')} ${hasHotelStay ? '(Hotel stay)' : ''}`,
+            calculatedDistance: totalDayDistance,
             calculatedAmount,
-            isHotelStay,
+            isHotelStay: hasHotelStay,
             processingStatus: 'calculated',
-            originalData: row
+            originalData: dayEntries
           });
           
           results.push(entry);
+          
+          // Set hotel as next day's starting point
+          if (hasHotelStay) {
+            previousHotelAddress = hotelAddress;
+          } else {
+            previousHotelAddress = null; // Reset to default start address
+          }
         } catch (error) {
+          // Create error entry for the whole day
           const errorEntry = await storage.createScheduleEntry({
             userId,
-            date: new Date(row[headerMapping.date]),
-            startAddress: row[headerMapping.startAddress],
-            endAddress: row[headerMapping.endAddress],
-            notes: row[headerMapping.notes] || '',
+            date: new Date(dateString),
+            startAddress: previousHotelAddress || defaultStartAddress,
+            endAddress: defaultEndAddress,
+            notes: `Error processing daily route for ${dateString}`,
             processingStatus: 'error',
             errorMessage: error instanceof Error ? error.message : 'Unknown error',
-            originalData: row
+            originalData: dayEntries
           });
           
           results.push(errorEntry);
@@ -413,9 +477,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Log error
           await storage.createErrorLog({
             userId,
-            errorType: 'route_calculation',
+            errorType: 'daily_route_calculation',
             errorMessage: error instanceof Error ? error.message : 'Unknown error',
-            context: { startAddress: row[headerMapping.startAddress], endAddress: row[headerMapping.endAddress] },
+            context: { date: dateString, entriesCount: dayEntries.length },
             timestamp: new Date()
           });
         }
