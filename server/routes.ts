@@ -701,19 +701,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Handle Excel date format (numeric days since 1900-01-01) 
           let parsedDate: Date;
           if (typeof rawDate === 'number') {
-            // Use Excel date calculation more accurately
-            // Excel epoch: December 30, 1899 (not January 1, 1900!)
-            // Excel's serial number 1 = January 1, 1900
-            const excelEpoch = new Date(1899, 11, 30); // December 30, 1899
-            
-            // Handle Excel's leap year bug (Excel thinks 1900 is a leap year)
-            let serialNumber = rawDate;
-            if (serialNumber > 59) {
-              serialNumber -= 1; // Account for non-existent Feb 29, 1900
-            }
-            
-            // Add days to epoch
-            parsedDate = new Date(excelEpoch.getTime() + (serialNumber * 24 * 60 * 60 * 1000));
+            // Excel dates: Simple conversion using standard JavaScript approach
+            // Excel epoch is January 1, 1900 (serial number 1)
+            // But account for Excel's leap year bug by using Unix epoch instead
+            const excelEpochDiff = 25569; // Days between 1900-01-01 and 1970-01-01
+            const daysFromUnixEpoch = rawDate - excelEpochDiff;
+            parsedDate = new Date(daysFromUnixEpoch * 24 * 60 * 60 * 1000);
           } else {
             parsedDate = new Date(rawDate);
           }
