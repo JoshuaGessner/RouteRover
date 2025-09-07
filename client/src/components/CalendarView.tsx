@@ -423,20 +423,19 @@ export function CalendarView() {
                   throw new Error('Received empty file');
                 }
                 
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.style.display = 'none';
-                a.href = url;
-                a.download = `route-rover-schedule-report-${new Date().toISOString().slice(0, 10)}.xlsx`;
+                // Create download link and trigger immediately
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `route-rover-schedule-report-${new Date().toISOString().slice(0, 10)}.xlsx`;
                 
-                document.body.appendChild(a);
-                a.click();
+                // Force download by adding to DOM and clicking
+                document.body.appendChild(link);
+                link.click();
                 
-                // Clean up after a short delay
-                setTimeout(() => {
-                  window.URL.revokeObjectURL(url);
-                  document.body.removeChild(a);
-                }, 100);
+                // Clean up immediately
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
                 
                 console.log('Export completed successfully');
               } catch (error) {
