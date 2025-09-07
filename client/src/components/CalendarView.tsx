@@ -357,6 +357,13 @@ export function CalendarView() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 w-full">
         <div className="flex gap-2">
           <Button 
+            variant={view === 'agenda' ? 'default' : 'outline'} 
+            onClick={() => setView('agenda')}
+            data-testid="year-view-btn"
+          >
+            Year
+          </Button>
+          <Button 
             variant={view === 'month' ? 'default' : 'outline'} 
             onClick={() => setView('month')}
             data-testid="month-view-btn"
@@ -376,13 +383,6 @@ export function CalendarView() {
             data-testid="day-view-btn"
           >
             Day
-          </Button>
-          <Button 
-            variant={view === 'year' ? 'default' : 'outline'} 
-            onClick={() => setView('year')}
-            data-testid="year-view-btn"
-          >
-            Year
           </Button>
         </div>
         
