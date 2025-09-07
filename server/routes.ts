@@ -705,7 +705,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             // Excel epoch is January 1, 1900 (serial number 1)
             // But account for Excel's leap year bug by using Unix epoch instead
             const excelEpochDiff = 25569; // Days between 1900-01-01 and 1970-01-01
-            const daysFromUnixEpoch = rawDate - excelEpochDiff;
+            const daysFromUnixEpoch = rawDate - excelEpochDiff + 1; // Add 1 day to correct offset
             parsedDate = new Date(daysFromUnixEpoch * 24 * 60 * 60 * 1000);
           } else {
             parsedDate = new Date(rawDate);
