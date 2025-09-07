@@ -320,8 +320,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const receipt = await storage.createReceipt(receiptData);
       
-      // Clean up uploaded file
-      fs.unlinkSync(req.file.path);
+      // Keep the uploaded file for serving images (don't delete it)
+      // fs.unlinkSync(req.file.path); // Commented out to preserve images
       
       res.json(receipt);
     } catch (error) {
@@ -747,6 +747,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error importing shared data:', error);
       res.status(500).json({ message: 'Failed to import shared data' });
+    }
+  });
+
+  // Serve uploaded images statically
+  app.use('/uploads', (req, res, next) => {
+    const filePath = path.join(process.cwd(), 'uploads', req.path);
+    if (fs.existsSync(filePath)) {
+      res.sendFile(filePath);
+    } else {
+      res.status(404).send('File not found');
+    }
+  });
+
+  // Receipt management routes
+  app.delete("/api/receipts/:id", async (req, res) => {
+    try {
+      const receiptId = req.params.id;
+      const userId = getCurrentUserId(req);
+      
+      // Get receipt first to check ownership and get file path
+      const receipt = await storage.getReceipt(receiptId);
+      if (!receipt || receipt.userId !== userId) {
+        return res.status(404).json({ message: "Receipt not found" });
+      }
+
+      // Delete the image file if it exists
+      if (receipt.imageUrl) {
+        const imagePath = receipt.imageUrl.replace('/uploads/', 'uploads/');
+        try {
+          fs.unlinkSync(imagePath);
+        } catch (error) {
+          console.warn('Could not delete image file:', imagePath);
+        }
+      }
+
+      await storage.deleteReceipt(receiptId);
+      res.json({ message: "Receipt deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete receipt" });
+    }
+  });
+
+  app.put("/api/receipts/:id", async (req, res) => {
+    try {
+      const receiptId = req.params.id;
+      const userId = getCurrentUserId(req);
+      const updateData = req.body;
+
+      // Get receipt first to check ownership
+      const receipt = await storage.getReceipt(receiptId);
+      if (!receipt || receipt.userId !== userId) {
+        return res.status(404).json({ message: "Receipt not found" });
+      }
+
+      const updatedReceipt = await storage.updateReceipt(receiptId, updateData);
+      res.json(updatedReceipt);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update receipt" });
     }
   });
 

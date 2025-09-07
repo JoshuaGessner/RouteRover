@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Save, Camera, Image, Fuel, Utensils, Car, Eye } from "lucide-react";
+import { Save, Camera, Image, Fuel, Utensils, Car, Eye, Edit2, Trash2, X } from "lucide-react";
 import { useCamera } from "@/hooks/useCamera";
 import { apiRequest } from "@/lib/queryClient";
 import type { Expense } from "@shared/schema";
@@ -19,6 +19,9 @@ export function ExpensesTab() {
   const [notes, setNotes] = useState("");
   const [isUploading, setIsUploading] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState(false);
+  const [editingReceipt, setEditingReceipt] = useState<any>(null);
+  const [editMerchant, setEditMerchant] = useState("");
+  const [editAmount, setEditAmount] = useState("");
   
   const queryClient = useQueryClient();
   const { captureImage, selectFromGallery, isCapturing, error: cameraError } = useCamera();
@@ -29,6 +32,35 @@ export function ExpensesTab() {
 
   const { data: receipts = [] } = useQuery<any[]>({
     queryKey: ["/api/receipts"],
+  });
+
+  const deleteReceiptMutation = useMutation({
+    mutationFn: async (receiptId: string) => {
+      const response = await fetch(`/api/receipts/${receiptId}`, {
+        method: 'DELETE',
+      });
+      if (!response.ok) throw new Error('Delete failed');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/receipts"] });
+    },
+  });
+
+  const updateReceiptMutation = useMutation({
+    mutationFn: async ({ id, updates }: { id: string; updates: any }) => {
+      const response = await fetch(`/api/receipts/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ extractedData: updates }),
+      });
+      if (!response.ok) throw new Error('Update failed');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/receipts"] });
+      setEditingReceipt(null);
+    },
   });
 
   const createExpenseMutation = useMutation({
@@ -114,6 +146,31 @@ export function ExpensesTab() {
       }
     } finally {
       setIsUploading(false);
+    }
+  };
+
+  const handleEditReceipt = (receipt: any) => {
+    setEditingReceipt(receipt);
+    setEditMerchant(receipt.extractedData?.merchant || "");
+    setEditAmount(receipt.extractedData?.amount?.toString() || "");
+  };
+
+  const handleSaveEdit = () => {
+    if (editingReceipt) {
+      updateReceiptMutation.mutate({
+        id: editingReceipt.id,
+        updates: {
+          ...editingReceipt.extractedData,
+          merchant: editMerchant,
+          amount: parseFloat(editAmount) || 0,
+        },
+      });
+    }
+  };
+
+  const handleDeleteReceipt = (receiptId: string) => {
+    if (confirm('Are you sure you want to delete this receipt?')) {
+      deleteReceiptMutation.mutate(receiptId);
     }
   };
 
@@ -292,14 +349,26 @@ export function ExpensesTab() {
                         <div className="text-muted-foreground text-xs">No Image</div>
                       </div>
                     )}
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      className="absolute top-2 right-2 p-2"
-                      data-testid={`view-receipt-${receipt.id}`}
-                    >
-                      <Eye className="w-3 h-3" />
-                    </Button>
+                    <div className="absolute top-2 right-2 flex gap-1">
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        className="p-1.5"
+                        onClick={() => handleEditReceipt(receipt)}
+                        data-testid={`edit-receipt-${receipt.id}`}
+                      >
+                        <Edit2 className="w-3 h-3" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        className="p-1.5"
+                        onClick={() => handleDeleteReceipt(receipt.id)}
+                        data-testid={`delete-receipt-${receipt.id}`}
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </Button>
+                    </div>
                   </div>
                   <div className="p-2">
                     <div className="text-xs font-medium truncate">
@@ -327,6 +396,68 @@ export function ExpensesTab() {
               </p>
             )}
           </CardContent>
+        </Card>
+      )}
+
+      {/* Edit Receipt Modal */}
+      {editingReceipt && (
+        <Card className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" data-testid="edit-receipt-modal">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold">Edit Receipt</h3>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setEditingReceipt(null)}
+                data-testid="close-edit-modal"
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <Label className="text-sm font-medium mb-2 block">Merchant</Label>
+                <Input
+                  value={editMerchant}
+                  onChange={(e) => setEditMerchant(e.target.value)}
+                  placeholder="Merchant name"
+                  data-testid="edit-merchant-input"
+                />
+              </div>
+              
+              <div>
+                <Label className="text-sm font-medium mb-2 block">Amount</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={editAmount}
+                  onChange={(e) => setEditAmount(e.target.value)}
+                  placeholder="0.00"
+                  data-testid="edit-amount-input"
+                />
+              </div>
+              
+              <div className="flex gap-2 pt-2">
+                <Button
+                  onClick={handleSaveEdit}
+                  disabled={updateReceiptMutation.isPending}
+                  className="flex-1"
+                  data-testid="save-receipt-edit"
+                >
+                  {updateReceiptMutation.isPending ? 'Saving...' : 'Save Changes'}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setEditingReceipt(null)}
+                  className="flex-1"
+                  data-testid="cancel-receipt-edit"
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          </div>
         </Card>
       )}
 
