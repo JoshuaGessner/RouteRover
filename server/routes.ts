@@ -309,7 +309,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         totalRows: parsedData.length
       });
     } catch (error) {
-      res.status(500).json({ message: "Failed to parse schedule file" });
+      console.error("Schedule import error:", error);
+      // Clean up uploaded file if it exists
+      if (req.file) {
+        try {
+          fs.unlinkSync(req.file.path);
+        } catch (cleanup) {
+          console.error("Failed to cleanup file:", cleanup);
+        }
+      }
+      res.status(500).json({ message: `Failed to parse schedule file: ${error.message}` });
     }
   });
 

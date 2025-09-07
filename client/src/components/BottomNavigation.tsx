@@ -44,7 +44,7 @@ export function BottomNavigation({ activeTab, onTabChange }: BottomNavigationPro
               data-testid={`nav-${tab.id}`}
             >
               <Icon className="w-4 h-4 mb-1 flex-shrink-0" />
-              <span className={`text-xs ${isActive ? 'font-medium' : ''} truncate max-w-full`}>
+              <span className={`text-xs ${isActive ? 'font-medium' : ''} text-center leading-tight`}>
                 {tab.label}
               </span>
             </Button>

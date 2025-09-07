@@ -160,10 +160,10 @@ export function SettingsTab() {
             
             <div className="flex items-center justify-between py-2 border-t border-border">
               <span className="text-sm">API Usage This Month</span>
-              <span className="text-sm font-medium">1,247 / 2,500 calls</span>
+              <span className="text-sm font-medium">Usage data available after API key is saved</span>
             </div>
             
-            <Progress value={apiUsagePercentage} className="w-full" />
+            <Progress value={0} className="w-full" />
             
             <Button 
               onClick={handleSaveSettings}
