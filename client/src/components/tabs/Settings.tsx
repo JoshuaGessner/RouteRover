@@ -8,7 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
-import { Eye, EyeOff, Download, FileX, Trash2, ExternalLink, Share2, Users, LogOut } from "lucide-react";
+import { Eye, EyeOff, Download, FileX, Trash2, ExternalLink, Share2, Users, LogOut, Camera, MapPin, Settings, CheckCircle, XCircle, AlertCircle } from "lucide-react";
 import { useTheme } from "@/components/ThemeProvider";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
@@ -22,6 +22,8 @@ export function SettingsTab() {
   const [defaultEndAddress, setDefaultEndAddress] = useState("");
   const [shareCode, setShareCode] = useState("");
   const [importShareCode, setImportShareCode] = useState("");
+  const [cameraPermission, setCameraPermission] = useState<PermissionState | null>(null);
+  const [locationPermission, setLocationPermission] = useState<PermissionState | null>(null);
   
   const { theme, toggleTheme } = useTheme();
   const { user } = useAuth();
@@ -40,6 +42,29 @@ export function SettingsTab() {
       setDefaultEndAddress(settings.defaultEndAddress || "");
     }
   }, [settings]);
+
+  // Check permissions on component mount
+  useEffect(() => {
+    const checkPermissions = async () => {
+      try {
+        if (navigator.permissions) {
+          const cameraStatus = await navigator.permissions.query({ name: 'camera' as PermissionName });
+          setCameraPermission(cameraStatus.state);
+          
+          const locationStatus = await navigator.permissions.query({ name: 'geolocation' as PermissionName });
+          setLocationPermission(locationStatus.state);
+          
+          // Listen for permission changes
+          cameraStatus.addEventListener('change', () => setCameraPermission(cameraStatus.state));
+          locationStatus.addEventListener('change', () => setLocationPermission(locationStatus.state));
+        }
+      } catch (error) {
+        console.log('Permission API not supported');
+      }
+    };
+    
+    checkPermissions();
+  }, []);
 
   const { data: errorLogs = [] } = useQuery<any[]>({
     queryKey: ["/api/error-logs"],
@@ -128,6 +153,52 @@ export function SettingsTab() {
   const handleImportSharedData = () => {
     if (importShareCode.trim()) {
       importSharedDataMutation.mutate(importShareCode);
+    }
+  };
+
+  const requestCameraPermission = async () => {
+    try {
+      await navigator.mediaDevices.getUserMedia({ video: true });
+      setCameraPermission('granted');
+    } catch (error) {
+      console.error('Camera permission denied');
+    }
+  };
+
+  const requestLocationPermission = async () => {
+    try {
+      await new Promise((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject);
+      });
+      setLocationPermission('granted');
+    } catch (error) {
+      console.error('Location permission denied');
+    }
+  };
+
+  const getPermissionIcon = (permission: PermissionState | null) => {
+    switch (permission) {
+      case 'granted':
+        return <CheckCircle className="w-5 h-5 text-green-600" />;
+      case 'denied':
+        return <XCircle className="w-5 h-5 text-red-600" />;
+      case 'prompt':
+        return <AlertCircle className="w-5 h-5 text-yellow-600" />;
+      default:
+        return <Settings className="w-5 h-5 text-gray-400" />;
+    }
+  };
+
+  const getPermissionText = (permission: PermissionState | null) => {
+    switch (permission) {
+      case 'granted':
+        return 'Allowed';
+      case 'denied':
+        return 'Denied';
+      case 'prompt':
+        return 'Not requested';
+      default:
+        return 'Unknown';
     }
   };
 
@@ -388,6 +459,91 @@ export function SettingsTab() {
               </div>
               <Trash2 className="w-4 h-4" />
             </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* App Permissions */}
+      <Card data-testid="app-permissions">
+        <CardContent className="pt-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
+              <Settings className="w-4 h-4 text-orange-600" />
+            </div>
+            <h3 className="text-lg font-semibold">App Permissions</h3>
+          </div>
+
+          <div className="space-y-4">
+            {/* Camera Permission */}
+            <div className="flex items-center justify-between p-3 border border-border rounded-lg">
+              <div className="flex items-center gap-3">
+                <Camera className="w-5 h-5 text-gray-600" />
+                <div>
+                  <p className="font-medium">Camera Access</p>
+                  <p className="text-xs text-muted-foreground">Required for receipt capture</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                {getPermissionIcon(cameraPermission)}
+                <span className="text-sm font-medium">{getPermissionText(cameraPermission)}</span>
+              </div>
+            </div>
+
+            {cameraPermission !== 'granted' && (
+              <div className="ml-8 -mt-2">
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  onClick={requestCameraPermission}
+                  className="text-xs"
+                  data-testid="request-camera-permission"
+                >
+                  Request Camera Access
+                </Button>
+              </div>
+            )}
+
+            {/* Location Permission */}
+            <div className="flex items-center justify-between p-3 border border-border rounded-lg">
+              <div className="flex items-center gap-3">
+                <MapPin className="w-5 h-5 text-gray-600" />
+                <div>
+                  <p className="font-medium">Location Access</p>
+                  <p className="text-xs text-muted-foreground">Required for automatic trip tracking</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                {getPermissionIcon(locationPermission)}
+                <span className="text-sm font-medium">{getPermissionText(locationPermission)}</span>
+              </div>
+            </div>
+
+            {locationPermission !== 'granted' && (
+              <div className="ml-8 -mt-2">
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  onClick={requestLocationPermission}
+                  className="text-xs"
+                  data-testid="request-location-permission"
+                >
+                  Request Location Access
+                </Button>
+              </div>
+            )}
+
+            {/* Permission Help */}
+            {(cameraPermission === 'denied' || locationPermission === 'denied') && (
+              <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <div className="flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 text-yellow-600 mt-0.5 flex-shrink-0" />
+                  <div className="text-xs text-yellow-800">
+                    <p className="font-medium mb-1">Permissions Denied</p>
+                    <p>To enable denied permissions, click the lock icon in your browser's address bar and change the permission settings, then refresh the page.</p>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
