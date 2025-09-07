@@ -558,24 +558,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/schedule/import", isAuthenticated, uploadSchedule.any(), async (req: any, res) => {
+  app.post("/api/schedule/import", isAuthenticated, uploadSchedule.single('schedule'), async (req: MulterRequest, res) => {
     try {
-      console.log("Schedule import - received files:", req.files);
-      console.log("Schedule import - body fields:", Object.keys(req.body));
+      console.log("Schedule import - received file:", req.file?.originalname, req.file?.mimetype);
       
-      const file = req.files?.[0];
-      if (!file) {
+      if (!req.file) {
         console.log("No file received in request");
         return res.status(400).json({ message: "No file provided" });
       }
       
-      console.log("Processing file:", file.originalname, file.mimetype);
+      console.log("Processing file:", req.file.originalname, req.file.mimetype);
 
-      const parsedData = parseScheduleFile(file.path, file.originalname);
+      const parsedData = parseScheduleFile(req.file.path, req.file.originalname);
       const headerMapping = detectHeaders(parsedData);
       
       // Clean up uploaded file
-      fs.unlinkSync(file.path);
+      fs.unlinkSync(req.file.path);
       
       res.json({
         data: parsedData,
@@ -585,9 +583,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Schedule import error:", error);
       // Clean up uploaded file if it exists
-      if (req.files && req.files[0]) {
+      if (req.file) {
         try {
-          fs.unlinkSync(req.files[0].path);
+          fs.unlinkSync(req.file.path);
         } catch (cleanup) {
           console.error("Failed to cleanup file:", cleanup);
         }
