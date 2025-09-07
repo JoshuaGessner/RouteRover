@@ -357,10 +357,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
   setupAuth(app);
 
-  // Auth routes
-  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
+  // User route (for checking authentication status)
+  app.get('/api/user', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getCurrentUserId(req);
       const user = await storage.getUser(userId);
       res.json(user);
     } catch (error) {
@@ -371,10 +371,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Helper function to get current user ID
   const getCurrentUserId = (req: any): string => {
-    // Try multiple ways to get user ID for better compatibility
-    if (req.user?.claims?.sub) {
-      return req.user.claims.sub;
-    }
+    // For new simple auth system
     if (req.user?.id) {
       return req.user.id;
     }
@@ -383,7 +380,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   };
   
   // Trips routes
-  app.get("/api/trips", async (req, res) => {
+  app.get("/api/trips", isAuthenticated, async (req, res) => {
     try {
       const userId = getCurrentUserId(req);
       const trips = await storage.getTrips(userId);
@@ -393,7 +390,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/trips", async (req, res) => {
+  app.post("/api/trips", isAuthenticated, async (req, res) => {
     try {
       const userId = getCurrentUserId(req);
       const validatedData = insertTripSchema.parse({ ...req.body, userId });
@@ -427,7 +424,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Expenses routes
-  app.get("/api/expenses", async (req, res) => {
+  app.get("/api/expenses", isAuthenticated, async (req, res) => {
     try {
       const userId = getCurrentUserId(req);
       const expenses = await storage.getExpenses(userId);
@@ -437,7 +434,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/expenses", async (req, res) => {
+  app.post("/api/expenses", isAuthenticated, async (req, res) => {
     try {
       const userId = getCurrentUserId(req);
       const expenseData = {
