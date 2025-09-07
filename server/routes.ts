@@ -795,7 +795,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             notes: `Error processing daily route for ${dateString}`,
             processingStatus: 'error',
             errorMessage: error instanceof Error ? error.message : 'Unknown error',
-            originalData: dayEntries as any as Json
+            originalData: dayEntries as any
           });
           
           results.push(errorEntry);
@@ -825,7 +825,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Save all accumulated entries to database
       for (const entry of results) {
         if (entry) {
-          await storage.createScheduleEntry(entry);
+          const { originalData, ...entryWithoutOriginalData } = entry;
+          await storage.createScheduleEntry({
+            ...entryWithoutOriginalData,
+            originalData: originalData ? JSON.stringify(originalData) : null
+          });
         }
       }
 
