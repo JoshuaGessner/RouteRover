@@ -7,19 +7,25 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Eye, EyeOff, Download, FileX, Trash2, ExternalLink } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+import { Eye, EyeOff, Download, FileX, Trash2, ExternalLink, Share2, Users, LogOut } from "lucide-react";
 import { useTheme } from "@/components/ThemeProvider";
+import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
+import type { AppSettings } from "@shared/schema";
 
 export function SettingsTab() {
   const [showApiKey, setShowApiKey] = useState(false);
   const [apiKey, setApiKey] = useState("");
   const [mileageRate, setMileageRate] = useState("0.655");
+  const [shareCode, setShareCode] = useState("");
+  const [importShareCode, setImportShareCode] = useState("");
   
   const { theme, toggleTheme } = useTheme();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
 
-  const { data: settings } = useQuery({
+  const { data: settings } = useQuery<AppSettings | null>({
     queryKey: ["/api/settings"],
     onSuccess: (data) => {
       if (data) {
@@ -60,6 +66,34 @@ export function SettingsTab() {
     },
   });
 
+  const generateShareCodeMutation = useMutation({
+    mutationFn: async () => {
+      return await apiRequest('/api/share/generate', {
+        method: 'POST'
+      });
+    },
+    onSuccess: (data) => {
+      if (data.shareCode) {
+        setShareCode(data.shareCode);
+      }
+    },
+  });
+
+  const importSharedDataMutation = useMutation({
+    mutationFn: async (shareCode: string) => {
+      return await apiRequest('/api/share/import', {
+        method: 'POST',
+        body: JSON.stringify({ shareCode }),
+        headers: { 'Content-Type': 'application/json' }
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/trips"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/expenses"] });
+      setImportShareCode('');
+    },
+  });
+
   const handleSaveSettings = () => {
     saveSettingsMutation.mutate({
       googleApiKey: apiKey,
@@ -69,6 +103,20 @@ export function SettingsTab() {
       pushNotifications: true,
       autoBackup: true,
     });
+  };
+
+  const handleGenerateShareCode = () => {
+    generateShareCodeMutation.mutate();
+  };
+
+  const handleImportSharedData = () => {
+    if (importShareCode.trim()) {
+      importSharedDataMutation.mutate(importShareCode);
+    }
+  };
+
+  const handleLogout = () => {
+    window.location.href = '/api/logout';
   };
 
   const apiUsagePercentage = 49.88; // Mock data
@@ -170,6 +218,57 @@ export function SettingsTab() {
         </CardContent>
       </Card>
 
+      {/* Data Sharing */}
+      <Card data-testid="data-sharing">
+        <CardContent className="pt-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center">
+              <Users className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+            </div>
+            <h3 className="text-lg font-semibold">Data Sharing</h3>
+          </div>
+          
+          <div className="space-y-4">
+            <Button 
+              onClick={handleGenerateShareCode}
+              disabled={generateShareCodeMutation.isPending}
+              variant="outline" 
+              className="w-full justify-start" 
+              data-testid="generate-share-code"
+            >
+              <Share2 className="w-4 h-4 mr-2" />
+              Generate Share Code
+            </Button>
+            
+            {shareCode && (
+              <div className="p-3 bg-muted rounded-lg">
+                <p className="text-sm font-medium mb-1">Share Code:</p>
+                <p className="text-sm font-mono bg-background p-2 rounded border select-all">{shareCode}</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Valid for 24 hours. Share this code with others to let them import your data.
+                </p>
+              </div>
+            )}
+            
+            <div className="flex gap-2">
+              <Input 
+                placeholder="Enter share code to import"
+                value={importShareCode}
+                onChange={(e) => setImportShareCode(e.target.value)}
+                data-testid="import-share-code-input"
+              />
+              <Button 
+                onClick={handleImportSharedData}
+                disabled={!importShareCode.trim() || importSharedDataMutation.isPending}
+                data-testid="import-shared-data"
+              >
+                Import
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Data Management */}
       <Card data-testid="data-management">
         <CardContent className="pt-6">
@@ -219,6 +318,35 @@ export function SettingsTab() {
               <Trash2 className="w-4 h-4" />
             </Button>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* User Account */}
+      <Card data-testid="user-account">
+        <CardContent className="pt-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-8 h-8 bg-primary/20 rounded-lg flex items-center justify-center">
+              <Users className="w-4 h-4 text-primary" />
+            </div>
+            <h3 className="text-lg font-semibold">Account</h3>
+          </div>
+
+          {user && (
+            <div className="p-3 bg-muted rounded-lg mb-4">
+              <p className="text-sm font-medium">Signed in as:</p>
+              <p className="text-sm text-muted-foreground">{user.email || user.firstName || 'User'}</p>
+            </div>
+          )}
+
+          <Button 
+            onClick={handleLogout}
+            variant="destructive" 
+            className="w-full" 
+            data-testid="logout-button"
+          >
+            <LogOut className="w-4 h-4 mr-2" />
+            Sign Out
+          </Button>
         </CardContent>
       </Card>
 
