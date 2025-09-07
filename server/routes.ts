@@ -509,7 +509,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/receipts", upload.single('image'), async (req: MulterRequest, res) => {
+  app.post("/api/receipts", isAuthenticated, upload.single('image'), async (req: MulterRequest, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ message: "No image file provided" });
@@ -541,7 +541,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Schedule routes
-  app.get("/api/schedule", async (req, res) => {
+  app.get("/api/schedule", isAuthenticated, async (req, res) => {
     try {
       const userId = getCurrentUserId(req);
       const entries = await storage.getScheduleEntries(userId);
@@ -841,7 +841,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Analytics route
-  app.get("/api/analytics", async (req, res) => {
+  app.get("/api/analytics", isAuthenticated, async (req, res) => {
     try {
       const userId = getCurrentUserId(req);
       const scheduleEntries = await storage.getScheduleEntries(userId);

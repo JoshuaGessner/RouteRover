@@ -377,6 +377,13 @@ export function CalendarView() {
           >
             Day
           </Button>
+          <Button 
+            variant={view === 'year' ? 'default' : 'outline'} 
+            onClick={() => setView('year')}
+            data-testid="year-view-btn"
+          >
+            Year
+          </Button>
         </div>
         
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 text-sm w-full">
