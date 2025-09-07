@@ -29,24 +29,10 @@ const uploadImages = multer({
   }
 });
 
-// Multer config for schedule file uploads (CSV, Excel, text)
+// Multer config for schedule file uploads (CSV, Excel, text) - simplified to debug
 const uploadSchedule = multer({ 
   dest: "uploads/",
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
-  fileFilter: (req, file, cb) => {
-    // Allow CSV, Excel, and text files for schedule imports
-    const allowedTypes = [
-      'text/csv',
-      'application/vnd.ms-excel',
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      'text/plain'
-    ];
-    if (allowedTypes.includes(file.mimetype) || file.originalname.match(/\.(csv|xlsx|xls|txt)$/i)) {
-      cb(null, true);
-    } else {
-      cb(new Error('Only CSV, Excel, and text files are allowed for schedule imports'));
-    }
-  }
+  limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
 });
 
 // Helper function to sanitize file paths
