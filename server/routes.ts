@@ -401,7 +401,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/trips/:id", async (req, res) => {
+  app.patch("/api/trips/:id", isAuthenticated, async (req, res) => {
     try {
       const trip = await storage.updateTrip(req.params.id, req.body);
       if (!trip) {
@@ -413,7 +413,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/trips/active", async (req, res) => {
+  app.get("/api/trips/active", isAuthenticated, async (req, res) => {
     try {
       const userId = getCurrentUserId(req);
       const activeTrip = await storage.getActiveTrip(userId);
@@ -451,7 +451,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/expenses/:id", async (req, res) => {
+  app.patch("/api/expenses/:id", isAuthenticated, async (req, res) => {
     try {
       const userId = getCurrentUserId(req);
       const expenseId = req.params.id;
@@ -475,7 +475,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/expenses/:id", async (req, res) => {
+  app.delete("/api/expenses/:id", isAuthenticated, async (req, res) => {
     try {
       const userId = getCurrentUserId(req);
       const expenseId = req.params.id;
@@ -499,7 +499,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Receipts routes
-  app.get("/api/receipts", async (req, res) => {
+  app.get("/api/receipts", isAuthenticated, async (req, res) => {
     try {
       const userId = getCurrentUserId(req);
       const receipts = await storage.getReceipts(userId);
