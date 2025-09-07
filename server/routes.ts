@@ -756,6 +756,89 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Export routes data for IRS reporting
+  app.get("/api/export/routes", async (req, res) => {
+    try {
+      const userId = getCurrentUserId(req);
+      const trips = await storage.getAllTrips(userId);
+      const expenses = await storage.getAllExpenses(userId);
+      
+      // Create expense lookup by trip ID
+      const expensesByTrip = expenses.reduce((acc, expense) => {
+        if (expense.tripId) {
+          if (!acc[expense.tripId]) acc[expense.tripId] = [];
+          acc[expense.tripId].push(expense);
+        }
+        return acc;
+      }, {} as Record<string, typeof expenses>);
+
+      // Format data for IRS compliance
+      const irsData = trips.map(trip => {
+        const startLocation = trip.startLocation as any;
+        const endLocation = trip.endLocation as any;
+        const tripExpenses = expensesByTrip[trip.id] || [];
+        const totalExpenses = tripExpenses.reduce((sum, exp) => sum + exp.amount, 0);
+        
+        return {
+          'Date': new Date(trip.startTime).toLocaleDateString('en-US'),
+          'Start Time': new Date(trip.startTime).toLocaleTimeString('en-US'),
+          'End Time': trip.endTime ? new Date(trip.endTime).toLocaleTimeString('en-US') : 'In Progress',
+          'Start Location': startLocation?.address || `${startLocation?.lat}, ${startLocation?.lng}`,
+          'End Location': endLocation?.address || `${endLocation?.lat}, ${endLocation?.lng}`,
+          'Business Purpose': trip.purpose || 'Business',
+          'Total Miles': (trip.distance || 0).toFixed(2),
+          'Business Miles': (trip.distance || 0).toFixed(2),
+          'Personal Miles': '0.00',
+          'Mileage Rate': '$0.655',
+          'Mileage Deduction': `$${((trip.distance || 0) * 0.655).toFixed(2)}`,
+          'Additional Expenses': `$${totalExpenses.toFixed(2)}`,
+          'Total Deduction': `$${((trip.distance || 0) * 0.655 + totalExpenses).toFixed(2)}`,
+          'Notes': trip.notes || '',
+          'Auto Detected': trip.autoDetected ? 'Yes' : 'No'
+        };
+      });
+
+      // Create workbook and worksheet
+      const workbook = XLSX.utils.book_new();
+      const worksheet = XLSX.utils.json_to_sheet(irsData);
+      
+      // Set column widths for better readability
+      const colWidths = [
+        { wch: 12 }, // Date
+        { wch: 12 }, // Start Time
+        { wch: 12 }, // End Time
+        { wch: 25 }, // Start Location
+        { wch: 25 }, // End Location
+        { wch: 15 }, // Business Purpose
+        { wch: 12 }, // Total Miles
+        { wch: 12 }, // Business Miles
+        { wch: 12 }, // Personal Miles
+        { wch: 12 }, // Mileage Rate
+        { wch: 15 }, // Mileage Deduction
+        { wch: 18 }, // Additional Expenses
+        { wch: 15 }, // Total Deduction
+        { wch: 30 }, // Notes
+        { wch: 12 }  // Auto Detected
+      ];
+      worksheet['!cols'] = colWidths;
+
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'IRS Mileage Report');
+      
+      // Generate Excel file
+      const excelBuffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+      
+      // Set response headers for file download
+      const filename = `route-rover-mileage-report-${new Date().toISOString().slice(0, 10)}.xlsx`;
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      
+      res.send(excelBuffer);
+    } catch (error) {
+      console.error('Export error:', error);
+      res.status(500).json({ message: 'Failed to export data' });
+    }
+  });
+
   // Serve uploaded images statically
   app.use('/uploads', (req, res, next) => {
     const filePath = path.join(process.cwd(), 'uploads', req.path);
