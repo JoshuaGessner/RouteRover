@@ -50,6 +50,18 @@ function sanitizeFilePath(filePath: string, baseDir: string = 'uploads/'): strin
 
 // Google Directions API integration
 async function calculateRoute(startAddress: string, endAddress: string, apiKey: string, userId?: string) {
+  // Skip calculation if start and end addresses are the same
+  if (startAddress.trim().toLowerCase() === endAddress.trim().toLowerCase()) {
+    return {
+      distance: 0,
+      duration: 0,
+      startAddress: startAddress,
+      endAddress: endAddress,
+      skipped: true,
+      reason: "Same start and end location"
+    };
+  }
+  
   const url = `https://maps.googleapis.com/maps/api/directions/json?origin=${encodeURIComponent(startAddress)}&destination=${encodeURIComponent(endAddress)}&key=${apiKey}`;
   
   try {
@@ -85,6 +97,18 @@ async function calculateRoute(startAddress: string, endAddress: string, apiKey: 
   } catch (error) {
     throw new Error(`Failed to calculate route: ${error}`);
   }
+}
+
+function detectOffDay(notes: string): boolean {
+  if (!notes) return false;
+  const lowerNotes = notes.toLowerCase();
+  const offDayKeywords = [
+    'off', 'off day', 'off-day', 'day off',
+    'vacation', 'holiday', 'sick', 'sick day',
+    'personal', 'pto', 'time off', 'not working',
+    'no work', 'rest day', 'break'
+  ];
+  return offDayKeywords.some(keyword => lowerNotes.includes(keyword));
 }
 
 // OCR processing
@@ -700,18 +724,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
       for (const [dateString, dayEntries] of Array.from(entriesByDate)) {
         try {
           const date = new Date(dateString);
-          let dayStartAddress = previousHotelAddress || defaultStartAddress;
-          let dayEndAddress = defaultEndAddress;
-          let totalDayDistance = 0;
-          let hasHotelStay = false;
-          let hotelAddress = null;
-
+          
           // Build the route for this day: start -> locations -> end
           const locations = dayEntries.map((row: any) => ({
             address: row[headerMapping.startAddress],
             notes: row[headerMapping.notes] || '',
             originalData: JSON.parse(JSON.stringify(row))
           }));
+
+          // Check if this is an off day (skip all calculations)
+          const isOffDay = locations.some(location => detectOffDay(location.notes));
+          if (isOffDay) {
+            const offDayEntry = await storage.createScheduleEntry({
+              userId,
+              date,
+              startAddress: previousHotelAddress || defaultStartAddress,
+              endAddress: defaultEndAddress,
+              notes: `Off day - No travel calculated (${locations.map(l => l.notes).filter(n => n).join(', ')})`,
+              calculatedDistance: 0,
+              calculatedAmount: 0,
+              isHotelStay: false,
+              processingStatus: 'calculated',
+              originalData: dayEntries
+            });
+            results.push(offDayEntry);
+            continue; // Skip to next day
+          }
+
+          let dayStartAddress = previousHotelAddress || defaultStartAddress;
+          let dayEndAddress = defaultEndAddress;
+          let totalDayDistance = 0;
+          let hasHotelStay = false;
+          let hotelAddress = null;
+          let skippedRoutes = [];
 
           // Check for hotel stays
           for (const location of locations) {
@@ -732,6 +777,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
               if (currentLocation !== location.address && location.address) {
                 const routeInfo = await calculateRoute(currentLocation, location.address, apiKey, userId);
                 totalDayDistance += routeInfo.distance;
+                if (routeInfo.skipped) {
+                  skippedRoutes.push(`${currentLocation} → ${location.address}: ${routeInfo.reason}`);
+                }
               }
               currentLocation = location.address || currentLocation;
             }
@@ -740,6 +788,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             if (currentLocation !== dayEndAddress && !hasHotelStay && dayEndAddress) {
               const routeInfo = await calculateRoute(currentLocation, dayEndAddress, apiKey, userId);
               totalDayDistance += routeInfo.distance;
+              if (routeInfo.skipped) {
+                skippedRoutes.push(`${currentLocation} → ${dayEndAddress}: ${routeInfo.reason}`);
+              }
             }
           }
 
@@ -769,7 +820,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               date,
               startAddress: dayStartAddress,
               endAddress: dayEndAddress,
-              notes: `Daily route: ${locations.map((l: any) => l.address).join(' → ')} ${hasHotelStay ? '(Hotel stay)' : ''}`,
+              notes: `Daily route: ${locations.map((l: any) => l.address).join(' → ')} ${hasHotelStay ? '(Hotel stay)' : ''}${skippedRoutes.length > 0 ? ` | Skipped: ${skippedRoutes.join(', ')}` : ''}`,
               calculatedDistance: totalDayDistance,
               calculatedAmount,
               isHotelStay: hasHotelStay,
