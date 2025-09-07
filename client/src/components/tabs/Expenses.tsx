@@ -91,6 +91,18 @@ export function ExpensesTab() {
 
   const handleCaptureReceipt = async () => {
     try {
+      // Check if camera permission is granted, request if not
+      if (navigator.permissions) {
+        const cameraStatus = await navigator.permissions.query({ name: 'camera' as PermissionName });
+        if (cameraStatus.state === 'denied') {
+          alert('Camera access is denied. Please enable camera permissions in your browser settings to capture receipts.');
+          return;
+        }
+        if (cameraStatus.state === 'prompt') {
+          // The camera request will prompt automatically
+        }
+      }
+      
       const imageFile = await captureImage();
       if (imageFile) {
         await uploadReceipt(imageFile);

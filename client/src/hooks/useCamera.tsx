@@ -76,7 +76,7 @@ export function useCamera() {
       
       if (error instanceof Error) {
         if (error.name === 'NotAllowedError') {
-          errorMessage = 'Camera permission denied. Please allow camera access in your browser settings.';
+          errorMessage = 'Camera permission denied. Please allow camera access in your browser settings or click "Request Camera Access" in the Settings tab.';
         } else if (error.name === 'NotFoundError') {
           errorMessage = 'No camera found on this device.';
         } else if (error.name === 'NotSupportedError') {

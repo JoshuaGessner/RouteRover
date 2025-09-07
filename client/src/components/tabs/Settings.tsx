@@ -158,21 +158,37 @@ export function SettingsTab() {
 
   const requestCameraPermission = async () => {
     try {
-      await navigator.mediaDevices.getUserMedia({ video: true });
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      // Stop the stream immediately since we only need permission
+      stream.getTracks().forEach(track => track.stop());
       setCameraPermission('granted');
-    } catch (error) {
-      console.error('Camera permission denied');
+    } catch (error: any) {
+      console.error('Camera permission denied:', error);
+      if (error.name === 'NotAllowedError') {
+        setCameraPermission('denied');
+      } else {
+        console.error('Camera access error:', error);
+      }
     }
   };
 
   const requestLocationPermission = async () => {
     try {
       await new Promise((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject);
+        navigator.geolocation.getCurrentPosition(
+          resolve, 
+          reject,
+          { timeout: 10000, enableHighAccuracy: false, maximumAge: 300000 }
+        );
       });
       setLocationPermission('granted');
-    } catch (error) {
-      console.error('Location permission denied');
+    } catch (error: any) {
+      console.error('Location permission denied:', error);
+      if (error.code === 1) { // PERMISSION_DENIED
+        setLocationPermission('denied');
+      } else {
+        console.error('Location access error:', error);
+      }
     }
   };
 
