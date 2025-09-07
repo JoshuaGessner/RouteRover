@@ -349,10 +349,58 @@ export function CalendarView() {
         </div>
       </div>
 
-      {/* Calendar */}
-      <Card>
-        <CardContent className="p-6">
-          <div style={{ height: '600px' }}>
+      {/* Enhanced Calendar */}
+      <Card className="border-0 shadow-lg bg-white">
+        <CardContent className="p-0">
+          <div style={{ height: '600px' }} className="rounded-lg overflow-hidden">
+            <style jsx>{`
+              .rbc-calendar {
+                background: white;
+                font-family: inherit;
+              }
+              .rbc-month-view {
+                border: none;
+              }
+              .rbc-header {
+                background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+                border: none;
+                border-bottom: 1px solid #e5e7eb;
+                padding: 12px 8px;
+                font-weight: 600;
+                font-size: 14px;
+                color: #374151;
+              }
+              .rbc-date-cell {
+                padding: 8px 12px;
+                border: none;
+                border-bottom: 1px solid #f1f5f9;
+                font-weight: 500;
+                color: #6b7280;
+              }
+              .rbc-today {
+                background-color: #eff6ff;
+              }
+              .rbc-off-range-bg {
+                background-color: #f9fafb;
+              }
+              .rbc-event {
+                border-radius: 6px;
+                padding: 4px 8px;
+                font-size: 12px;
+                font-weight: 500;
+                border: none;
+                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+                transition: all 0.2s ease;
+              }
+              .rbc-event:hover {
+                transform: translateY(-1px);
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+              }
+              .rbc-selected {
+                outline: 2px solid #3b82f6;
+                outline-offset: 2px;
+              }
+            `}</style>
             <Calendar
               localizer={localizer}
               events={events}
@@ -361,7 +409,29 @@ export function CalendarView() {
               view={view}
               onView={(newView: View) => setView(newView)}
               onSelectEvent={handleSelectEvent}
-              eventPropGetter={eventStyleGetter}
+              eventPropGetter={(event) => {
+                const isHotel = event.resource?.isHotelStay || event.resource?.notes?.toLowerCase().includes('hotel');
+                return {
+                  style: {
+                    backgroundColor: isHotel ? COLORS.hotel : COLORS.trip,
+                    borderColor: isHotel ? '#ea580c' : '#2563eb',
+                    color: 'white',
+                    borderRadius: '6px',
+                    border: 'none',
+                    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+                    transition: 'all 0.2s ease'
+                  }
+                };
+              }}
+              dayPropGetter={(date) => {
+                const today = new Date();
+                const isToday = date.toDateString() === today.toDateString();
+                return {
+                  style: {
+                    backgroundColor: isToday ? '#eff6ff' : 'transparent',
+                  }
+                };
+              }}
               style={{ height: '100%' }}
               data-testid="calendar-component"
             />
