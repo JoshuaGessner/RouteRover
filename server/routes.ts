@@ -134,13 +134,40 @@ function detectHeaders(data: any[]) {
   
   headers.forEach(header => {
     const lowerHeader = header.toLowerCase();
-    if (lowerHeader.includes('date')) {
+    
+    // Date detection
+    if (lowerHeader.includes('date') || lowerHeader.includes('day')) {
       mapping.date = header;
-    } else if (lowerHeader.includes('start') && (lowerHeader.includes('address') || lowerHeader.includes('location'))) {
+    }
+    // Start address detection - more flexible patterns
+    else if (
+      (lowerHeader.includes('start') && (lowerHeader.includes('address') || lowerHeader.includes('location') || lowerHeader.includes('from'))) ||
+      lowerHeader.includes('origin') ||
+      lowerHeader.includes('departure') ||
+      (lowerHeader.includes('from') && (lowerHeader.includes('address') || lowerHeader.includes('location'))) ||
+      lowerHeader === 'start' ||
+      lowerHeader === 'from'
+    ) {
       mapping.startAddress = header;
-    } else if (lowerHeader.includes('end') && (lowerHeader.includes('address') || lowerHeader.includes('location'))) {
+    }
+    // End address detection - more flexible patterns  
+    else if (
+      (lowerHeader.includes('end') && (lowerHeader.includes('address') || lowerHeader.includes('location') || lowerHeader.includes('to'))) ||
+      lowerHeader.includes('destination') ||
+      lowerHeader.includes('arrival') ||
+      (lowerHeader.includes('to') && (lowerHeader.includes('address') || lowerHeader.includes('location'))) ||
+      lowerHeader === 'end' ||
+      lowerHeader === 'to' ||
+      lowerHeader === 'destination'
+    ) {
       mapping.endAddress = header;
-    } else if (lowerHeader.includes('note') || lowerHeader.includes('comment')) {
+    }
+    // Generic address fields if no start/end found yet
+    else if (!mapping.startAddress && (lowerHeader.includes('address') || lowerHeader.includes('location'))) {
+      mapping.startAddress = header;
+    }
+    // Notes detection
+    else if (lowerHeader.includes('note') || lowerHeader.includes('comment') || lowerHeader.includes('description')) {
       mapping.notes = header;
     }
   });

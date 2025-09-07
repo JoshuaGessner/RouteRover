@@ -20,7 +20,7 @@ export function TrackingTab() {
   const [notes, setNotes] = useState("");
   
   const queryClient = useQueryClient();
-  const { position, error: gpsError } = useGeolocation();
+  const { position, error: gpsError, loading: gpsLoading, permissionStatus } = useGeolocation();
 
   const { data: activeTrip } = useQuery<Trip | null>({
     queryKey: ["/api/trips/active"],
@@ -226,9 +226,29 @@ export function TrackingTab() {
               </Badge>
             </div>
 
-            {gpsError && (
+            {permissionStatus === 'denied' && (
+              <div className="mt-4 p-3 bg-destructive/10 text-destructive rounded-lg text-sm">
+                <div className="font-medium mb-2">Location Permission Required</div>
+                <p className="text-xs">To use GPS tracking, please enable location permissions in your browser settings and refresh the page.</p>
+              </div>
+            )}
+
+            {permissionStatus === 'prompt' && !gpsError && (
+              <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-950/20 text-blue-700 dark:text-blue-300 rounded-lg text-sm">
+                <div className="font-medium mb-2">Location Access Needed</div>
+                <p className="text-xs">Please allow location access when prompted to enable GPS tracking.</p>
+              </div>
+            )}
+
+            {gpsError && permissionStatus !== 'denied' && (
               <div className="mt-4 p-3 bg-destructive/10 text-destructive rounded-lg text-sm">
                 GPS Error: {gpsError}
+              </div>
+            )}
+
+            {gpsLoading && permissionStatus === 'granted' && (
+              <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-950/20 text-blue-700 dark:text-blue-300 rounded-lg text-sm">
+                Getting GPS location...
               </div>
             )}
           </div>
