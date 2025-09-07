@@ -8,12 +8,12 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
-import { Eye, EyeOff, Download, FileX, Trash2, ExternalLink, Share2, Users, LogOut, Camera, MapPin, Settings, CheckCircle, XCircle, AlertCircle } from "lucide-react";
+import { Eye, EyeOff, Download, FileX, Trash2, ExternalLink, Share2, Users, LogOut, Camera, MapPin, Settings, CheckCircle, XCircle, AlertCircle, Edit3 } from "lucide-react";
 import { useTheme } from "@/components/ThemeProvider";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
 import { localImageStorage } from "@/lib/localImageStorage";
-import type { AppSettings } from "@shared/schema";
+import type { AppSettings, YearlyRate } from "@shared/schema";
 
 export function SettingsTab() {
   const [showApiKey, setShowApiKey] = useState(false);
@@ -28,6 +28,11 @@ export function SettingsTab() {
   const [cameraPermission, setCameraPermission] = useState<PermissionState | null>(null);
   const [locationPermission, setLocationPermission] = useState<PermissionState | null>(null);
   const [showErrorLog, setShowErrorLog] = useState(false);
+  const [newYear, setNewYear] = useState("");
+  const [newRate, setNewRate] = useState("");
+  const [editingRate, setEditingRate] = useState<string | null>(null);
+  const [editRate, setEditRate] = useState("");
+  const [editYear, setEditYear] = useState("");
   
   const { theme, toggleTheme } = useTheme();
   const { user } = useAuth();
@@ -35,6 +40,10 @@ export function SettingsTab() {
 
   const { data: settings } = useQuery<AppSettings | null>({
     queryKey: ["/api/settings"],
+  });
+
+  const { data: yearlyRates = [] } = useQuery<YearlyRate[]>({
+    queryKey: ["/api/yearly-rates"],
   });
 
   // Update form data when settings are loaded - using useEffect instead of render-time logic
@@ -117,6 +126,41 @@ export function SettingsTab() {
     },
   });
 
+  const createYearlyRateMutation = useMutation({
+    mutationFn: async (rateData: { year: number; mileageRate: number }) => {
+      const response = await apiRequest("POST", "/api/yearly-rates", rateData);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/yearly-rates"] });
+      setNewYear("");
+      setNewRate("");
+    },
+  });
+
+  const updateYearlyRateMutation = useMutation({
+    mutationFn: async ({ id, year, mileageRate }: { id: string; year: number; mileageRate: number }) => {
+      const response = await apiRequest("PUT", `/api/yearly-rates/${id}`, { year, mileageRate });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/yearly-rates"] });
+      setEditingRate(null);
+      setEditRate("");
+      setEditYear("");
+    },
+  });
+
+  const deleteYearlyRateMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const response = await apiRequest("DELETE", `/api/yearly-rates/${id}`);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/yearly-rates"] });
+    },
+  });
+
   const generateShareCodeMutation = useMutation({
     mutationFn: async () => {
       const response = await fetch('/api/share/generate', {
@@ -169,6 +213,35 @@ export function SettingsTab() {
   const handleImportSharedData = () => {
     if (importShareCode.trim()) {
       importSharedDataMutation.mutate(importShareCode);
+    }
+  };
+
+  const handleCreateYearlyRate = () => {
+    if (!newYear || !newRate) return;
+    createYearlyRateMutation.mutate({
+      year: parseInt(newYear),
+      mileageRate: parseFloat(newRate)
+    });
+  };
+
+  const handleEditYearlyRate = (rate: YearlyRate) => {
+    setEditingRate(rate.id);
+    setEditYear(rate.year.toString());
+    setEditRate(rate.mileageRate.toString());
+  };
+
+  const handleSaveYearlyRate = () => {
+    if (!editingRate || !editYear || !editRate) return;
+    updateYearlyRateMutation.mutate({
+      id: editingRate,
+      year: parseInt(editYear),
+      mileageRate: parseFloat(editRate)
+    });
+  };
+
+  const handleDeleteYearlyRate = (id: string) => {
+    if (confirm('Are you sure you want to delete this yearly rate?')) {
+      deleteYearlyRateMutation.mutate(id);
     }
   };
 
@@ -413,6 +486,130 @@ export function SettingsTab() {
                 />
                 <span className="text-sm text-muted-foreground">per mile</span>
               </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Yearly Mileage Rates */}
+      <Card data-testid="yearly-rates">
+        <CardContent className="pt-6">
+          <h3 className="text-lg font-semibold mb-4">Yearly Mileage Rates</h3>
+          <p className="text-sm text-muted-foreground mb-4">
+            Set specific mileage rates for different years. The system uses these rates when calculating deductions for each year.
+          </p>
+          
+          <div className="space-y-4">
+            {/* Add New Rate */}
+            <div className="flex gap-2">
+              <Input
+                type="number"
+                placeholder="Year (e.g., 2024)"
+                value={newYear}
+                onChange={(e) => setNewYear(e.target.value)}
+                className="w-32"
+                data-testid="new-year-input"
+              />
+              <div className="flex items-center gap-1">
+                <span className="text-sm">$</span>
+                <Input
+                  type="number"
+                  step="0.001"
+                  placeholder="Rate"
+                  value={newRate}
+                  onChange={(e) => setNewRate(e.target.value)}
+                  className="w-24"
+                  data-testid="new-rate-input"
+                />
+              </div>
+              <Button
+                onClick={handleCreateYearlyRate}
+                disabled={!newYear || !newRate || createYearlyRateMutation.isPending}
+                size="sm"
+                data-testid="add-yearly-rate"
+              >
+                Add Rate
+              </Button>
+            </div>
+
+            {/* Existing Rates */}
+            <div className="space-y-2">
+              {yearlyRates.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-4 text-center">
+                  No yearly rates set. Add rates above for specific years.
+                </p>
+              ) : (
+                yearlyRates
+                  .sort((a, b) => b.year - a.year)
+                  .map((rate) => (
+                    <div key={rate.id} className="flex items-center justify-between p-3 border rounded-lg">
+                      {editingRate === rate.id ? (
+                        <div className="flex items-center gap-2 flex-1">
+                          <Input
+                            type="number"
+                            value={editYear}
+                            onChange={(e) => setEditYear(e.target.value)}
+                            className="w-24"
+                            data-testid={`edit-year-${rate.id}`}
+                          />
+                          <div className="flex items-center gap-1">
+                            <span className="text-sm">$</span>
+                            <Input
+                              type="number"
+                              step="0.001"
+                              value={editRate}
+                              onChange={(e) => setEditRate(e.target.value)}
+                              className="w-24"
+                              data-testid={`edit-rate-${rate.id}`}
+                            />
+                          </div>
+                          <Button
+                            onClick={handleSaveYearlyRate}
+                            disabled={updateYearlyRateMutation.isPending}
+                            size="sm"
+                            data-testid={`save-rate-${rate.id}`}
+                          >
+                            <CheckCircle className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            onClick={() => setEditingRate(null)}
+                            variant="outline"
+                            size="sm"
+                            data-testid={`cancel-edit-${rate.id}`}
+                          >
+                            <XCircle className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="flex items-center gap-4">
+                            <span className="font-medium">{rate.year}</span>
+                            <span className="text-muted-foreground">${rate.mileageRate.toFixed(3)} per mile</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Button
+                              onClick={() => handleEditYearlyRate(rate)}
+                              variant="outline"
+                              size="sm"
+                              data-testid={`edit-rate-${rate.id}`}
+                            >
+                              <Edit3 className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              onClick={() => handleDeleteYearlyRate(rate.id)}
+                              variant="outline"
+                              size="sm"
+                              disabled={deleteYearlyRateMutation.isPending}
+                              data-testid={`delete-rate-${rate.id}`}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  ))
+              )}
             </div>
           </div>
         </CardContent>
