@@ -701,8 +701,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Handle Excel date format (numeric days since 1900-01-01) 
           let parsedDate: Date;
           if (typeof rawDate === 'number') {
-            // Excel dates: add days to Excel epoch (1900-01-01, but Excel incorrectly treats 1900 as leap year)
-            parsedDate = new Date(1900, 0, rawDate - 1); // -1 because Excel starts from day 1, not 0
+            // Excel dates: Convert serial number to proper date
+            // Excel incorrectly treats 1900 as a leap year, so we need to account for this
+            // Excel epoch is January 1, 1900 (serial number 1)
+            const excelEpoch = new Date(1900, 0, 1); // January 1, 1900
+            let daysToAdd = rawDate - 1; // Convert from 1-based to 0-based
+            
+            // Account for Excel's leap year bug (treats 1900 as leap year when it's not)
+            if (rawDate > 59) { // After February 28, 1900 (Excel's fake Feb 29)
+              daysToAdd -= 1;
+            }
+            
+            parsedDate = new Date(excelEpoch.getTime() + (daysToAdd * 24 * 60 * 60 * 1000));
           } else {
             parsedDate = new Date(rawDate);
           }
