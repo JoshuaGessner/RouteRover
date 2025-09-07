@@ -21,12 +21,26 @@ const upload = multer({
 });
 
 // Google Directions API integration
-async function calculateRoute(startAddress: string, endAddress: string, apiKey: string) {
+async function calculateRoute(startAddress: string, endAddress: string, apiKey: string, userId?: string) {
   const url = `https://maps.googleapis.com/maps/api/directions/json?origin=${encodeURIComponent(startAddress)}&destination=${encodeURIComponent(endAddress)}&key=${apiKey}`;
   
   try {
     const response = await fetch(url);
     const data = await response.json();
+    
+    // Track API usage if userId is provided
+    if (userId) {
+      const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM format
+      await storage.trackApiCall({
+        userId,
+        apiProvider: 'google_directions',
+        endpoint: '/directions',
+        callCount: 1,
+        month: currentMonth,
+        lastCalled: new Date(),
+        totalCost: 0.005 // $0.005 per request is Google's current rate
+      });
+    }
     
     if (data.status === "OK" && data.routes.length > 0) {
       const route = data.routes[0];
@@ -483,7 +497,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             // Calculate route to each location
             for (const location of locations) {
               if (currentLocation !== location.address && location.address) {
-                const routeInfo = await calculateRoute(currentLocation, location.address, apiKey);
+                const routeInfo = await calculateRoute(currentLocation, location.address, apiKey, userId);
                 totalDayDistance += routeInfo.distance;
               }
               currentLocation = location.address || currentLocation;
@@ -491,7 +505,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             
             // Calculate route back to end address (if different from last location)
             if (currentLocation !== dayEndAddress && !hasHotelStay) {
-              const routeInfo = await calculateRoute(currentLocation, dayEndAddress, apiKey);
+              const routeInfo = await calculateRoute(currentLocation, dayEndAddress, apiKey, userId);
               totalDayDistance += routeInfo.distance;
             }
           }
@@ -591,6 +605,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // API Usage route
+  app.get("/api/usage/:month?", async (req, res) => {
+    try {
+      const userId = getCurrentUserId(req);
+      const month = req.params.month || new Date().toISOString().slice(0, 7);
+      
+      const stats = await storage.getMonthlyApiStats(userId, month);
+      const usage = await storage.getApiUsage(userId, month);
+      
+      res.json({
+        ...stats,
+        usage,
+        month
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch API usage" });
+    }
+  });
+
   // Analytics route
   app.get("/api/analytics", async (req, res) => {
     try {
@@ -602,11 +635,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const tripDays = scheduleEntries.length;
       const avgDailyDistance = tripDays > 0 ? totalDistance / tripDays : 0;
       
+      // Group by month for trend analysis
+      const monthlyData = scheduleEntries.reduce((acc, entry) => {
+        const month = new Date(entry.date).toISOString().slice(0, 7);
+        if (!acc[month]) {
+          acc[month] = { distance: 0, amount: 0, days: 0 };
+        }
+        acc[month].distance += entry.calculatedDistance || 0;
+        acc[month].amount += entry.calculatedAmount || 0;
+        acc[month].days += 1;
+        return acc;
+      }, {} as Record<string, {distance: number, amount: number, days: number}>);
+
       res.json({
         totalDistance,
         totalAmount,
         tripDays,
-        avgDailyDistance
+        avgDailyDistance,
+        monthlyTrends: Object.entries(monthlyData).map(([month, data]) => ({
+          month,
+          ...data,
+          avgDistance: data.days > 0 ? data.distance / data.days : 0
+        }))
       });
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch analytics" });

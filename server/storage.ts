@@ -23,7 +23,10 @@ import {
   type InsertErrorLog,
   type ProcessedFile,
   type InsertProcessedFile,
-  processedFiles
+  processedFiles,
+  type InsertApiUsage,
+  type ApiUsage,
+  apiUsage
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and } from "drizzle-orm";
@@ -77,6 +80,11 @@ export interface IStorage {
   // File processing redundancy
   getProcessedFileHash(userId: string, fileHash: string): Promise<ProcessedFile | undefined>;
   createProcessedFile(file: InsertProcessedFile): Promise<ProcessedFile>;
+  
+  // API Usage tracking
+  getApiUsage(userId: string, month?: string): Promise<ApiUsage[]>;
+  trackApiCall(usage: InsertApiUsage): Promise<ApiUsage>;
+  getMonthlyApiStats(userId: string, month: string): Promise<{totalCalls: number, totalCost: number}>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -297,6 +305,52 @@ export class DatabaseStorage implements IStorage {
     const [file] = await db.insert(processedFiles).values(insertFile).returning();
     return file;
   }
+
+  // API Usage tracking
+  async getApiUsage(userId: string, month?: string): Promise<ApiUsage[]> {
+    const query = db.select().from(apiUsage).where(eq(apiUsage.userId, userId));
+    if (month) {
+      return await query.where(eq(apiUsage.month, month));
+    }
+    return await query;
+  }
+
+  async trackApiCall(insertUsage: InsertApiUsage): Promise<ApiUsage> {
+    // Check if entry exists for this user/provider/month
+    const existing = await db
+      .select()
+      .from(apiUsage)
+      .where(and(
+        eq(apiUsage.userId, insertUsage.userId),
+        eq(apiUsage.apiProvider, insertUsage.apiProvider),
+        eq(apiUsage.month, insertUsage.month)
+      ));
+
+    if (existing.length > 0) {
+      // Update existing record
+      const [updated] = await db
+        .update(apiUsage)
+        .set({
+          callCount: existing[0].callCount + 1,
+          lastCalled: insertUsage.lastCalled,
+          totalCost: (existing[0].totalCost || 0) + (insertUsage.totalCost || 0)
+        })
+        .where(eq(apiUsage.id, existing[0].id))
+        .returning();
+      return updated;
+    } else {
+      // Create new record
+      const [newUsage] = await db.insert(apiUsage).values(insertUsage).returning();
+      return newUsage;
+    }
+  }
+
+  async getMonthlyApiStats(userId: string, month: string): Promise<{totalCalls: number, totalCost: number}> {
+    const usage = await this.getApiUsage(userId, month);
+    const totalCalls = usage.reduce((sum, u) => sum + (u.callCount || 0), 0);
+    const totalCost = usage.reduce((sum, u) => sum + (u.totalCost || 0), 0);
+    return { totalCalls, totalCost };
+  }
 }
 
 // Fallback MemStorage for development/testing
@@ -309,6 +363,7 @@ class MemStorage implements IStorage {
   private appSettings: Map<string, AppSettings>;
   private errorLogs: Map<string, ErrorLog>;
   private processedFiles: Map<string, ProcessedFile>;
+  private apiUsage: Map<string, ApiUsage>;
 
   constructor() {
     this.users = new Map();
@@ -319,6 +374,7 @@ class MemStorage implements IStorage {
     this.appSettings = new Map();
     this.errorLogs = new Map();
     this.processedFiles = new Map();
+    this.apiUsage = new Map();
   }
 
   // Users for custom authentication
@@ -618,6 +674,51 @@ class MemStorage implements IStorage {
     const key = `${insertFile.userId}-${insertFile.fileHash}`;
     this.processedFiles.set(key, file);
     return file;
+  }
+
+  // API Usage tracking
+  async getApiUsage(userId: string, month?: string): Promise<ApiUsage[]> {
+    const allUsage = Array.from(this.apiUsage.values()).filter(usage => usage.userId === userId);
+    if (month) {
+      return allUsage.filter(usage => usage.month === month);
+    }
+    return allUsage;
+  }
+
+  async trackApiCall(insertUsage: InsertApiUsage): Promise<ApiUsage> {
+    const key = `${insertUsage.userId}-${insertUsage.apiProvider}-${insertUsage.month}`;
+    const existing = this.apiUsage.get(key);
+    
+    if (existing) {
+      // Update existing record
+      existing.callCount = (existing.callCount || 0) + 1;
+      existing.lastCalled = insertUsage.lastCalled;
+      existing.totalCost = (existing.totalCost || 0) + (insertUsage.totalCost || 0);
+      this.apiUsage.set(key, existing);
+      return existing;
+    } else {
+      // Create new record
+      const id = randomUUID();
+      const newUsage: ApiUsage = {
+        id,
+        userId: insertUsage.userId,
+        apiProvider: insertUsage.apiProvider,
+        endpoint: insertUsage.endpoint,
+        callCount: insertUsage.callCount || 1,
+        month: insertUsage.month,
+        lastCalled: insertUsage.lastCalled,
+        totalCost: insertUsage.totalCost || 0
+      };
+      this.apiUsage.set(key, newUsage);
+      return newUsage;
+    }
+  }
+
+  async getMonthlyApiStats(userId: string, month: string): Promise<{totalCalls: number, totalCost: number}> {
+    const usage = await this.getApiUsage(userId, month);
+    const totalCalls = usage.reduce((sum, u) => sum + (u.callCount || 0), 0);
+    const totalCost = usage.reduce((sum, u) => sum + (u.totalCost || 0), 0);
+    return { totalCalls, totalCost };
   }
 }
 

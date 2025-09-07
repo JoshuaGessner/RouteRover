@@ -109,6 +109,17 @@ export const processedFiles = pgTable("processed_files", {
   recordCount: integer("record_count").default(0),
 });
 
+export const apiUsage = pgTable("api_usage", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id),
+  apiProvider: text("api_provider").notNull(), // "google_directions"
+  endpoint: text("endpoint").notNull(),
+  callCount: integer("call_count").default(1),
+  month: text("month").notNull(), // YYYY-MM format
+  lastCalled: timestamp("last_called").notNull(),
+  totalCost: real("total_cost").default(0),
+});
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -149,6 +160,10 @@ export const insertProcessedFileSchema = createInsertSchema(processedFiles).omit
   id: true,
 });
 
+export const insertApiUsageSchema = createInsertSchema(apiUsage).omit({
+  id: true,
+});
+
 // Types
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type UpsertUser = z.infer<typeof upsertUserSchema>;
@@ -167,3 +182,5 @@ export type InsertErrorLog = z.infer<typeof insertErrorLogSchema>;
 export type ErrorLog = typeof errorLogs.$inferSelect;
 export type InsertProcessedFile = z.infer<typeof insertProcessedFileSchema>;
 export type ProcessedFile = typeof processedFiles.$inferSelect;
+export type InsertApiUsage = z.infer<typeof insertApiUsageSchema>;
+export type ApiUsage = typeof apiUsage.$inferSelect;
