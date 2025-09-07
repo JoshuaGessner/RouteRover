@@ -795,7 +795,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             notes: `Error processing daily route for ${dateString}`,
             processingStatus: 'error',
             errorMessage: error instanceof Error ? error.message : 'Unknown error',
-            originalData: dayEntries as any
+            originalData: dayEntries as any as Json
           });
           
           results.push(errorEntry);
@@ -843,7 +843,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // API Usage route
-  app.get("/api/usage/:month?", async (req, res) => {
+  app.get("/api/usage/:month?", isAuthenticated, async (req, res) => {
     try {
       const userId = getCurrentUserId(req);
       const month = req.params.month || new Date().toISOString().slice(0, 7);
@@ -901,7 +901,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Settings routes
-  app.get("/api/settings", async (req, res) => {
+  app.get("/api/settings", isAuthenticated, async (req, res) => {
     try {
       const userId = getCurrentUserId(req);
       const settings = await storage.getUserSettings(userId);
@@ -911,7 +911,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/settings", async (req, res) => {
+  app.post("/api/settings", isAuthenticated, async (req, res) => {
     try {
       const userId = getCurrentUserId(req);
       const validatedData = insertAppSettingsSchema.parse({ ...req.body, userId });
@@ -923,7 +923,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Error logs route
-  app.get("/api/error-logs", async (req, res) => {
+  app.get("/api/error-logs", isAuthenticated, async (req, res) => {
     try {
       const userId = getCurrentUserId(req);
       const logs = await storage.getErrorLogs(userId);
