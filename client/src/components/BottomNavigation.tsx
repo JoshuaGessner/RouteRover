@@ -26,8 +26,8 @@ export function BottomNavigation({ activeTab, onTabChange }: BottomNavigationPro
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-border" data-testid="bottom-navigation">
-      <div className="flex justify-around py-2">
+    <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-border z-50" data-testid="bottom-navigation">
+      <div className="flex justify-between px-2 py-1 overflow-x-auto">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -38,13 +38,13 @@ export function BottomNavigation({ activeTab, onTabChange }: BottomNavigationPro
               variant="ghost"
               size="sm"
               onClick={() => onTabChange(tab.id)}
-              className={`flex flex-col items-center py-2 px-4 h-auto ${
+              className={`flex flex-col items-center py-2 px-1 h-auto min-w-0 flex-1 ${
                 isActive ? 'text-primary' : 'text-muted-foreground'
               }`}
               data-testid={`nav-${tab.id}`}
             >
-              <Icon className="w-5 h-5 mb-1" />
-              <span className={`text-xs ${isActive ? 'font-medium' : ''}`}>
+              <Icon className="w-4 h-4 mb-1 flex-shrink-0" />
+              <span className={`text-xs ${isActive ? 'font-medium' : ''} truncate max-w-full`}>
                 {tab.label}
               </span>
             </Button>
