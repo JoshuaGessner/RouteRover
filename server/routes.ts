@@ -592,7 +592,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             notes: `Error processing daily route for ${dateString}`,
             processingStatus: 'error',
             errorMessage: error instanceof Error ? error.message : 'Unknown error',
-            originalData: dayEntries
+            originalData: dayEntries as any
           });
           
           results.push(errorEntry);
