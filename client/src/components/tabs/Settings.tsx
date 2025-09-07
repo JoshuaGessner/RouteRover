@@ -12,6 +12,7 @@ import { Eye, EyeOff, Download, FileX, Trash2, ExternalLink, Share2, Users, LogO
 import { useTheme } from "@/components/ThemeProvider";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
+import { localImageStorage } from "@/lib/localImageStorage";
 import type { AppSettings } from "@shared/schema";
 
 export function SettingsTab() {
@@ -108,23 +109,11 @@ export function SettingsTab() {
 
   const downloadReceiptsMutation = useMutation({
     mutationFn: async () => {
-      const response = await fetch("/api/receipts/download-all");
-      if (!response.ok) {
-        if (response.status === 404) {
-          throw new Error("No receipts found");
-        }
-        throw new Error("Download failed");
+      try {
+        await localImageStorage.downloadAllImages();
+      } catch (error) {
+        throw new Error(error instanceof Error ? error.message : "Download failed");
       }
-      
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.style.display = 'none';
-      a.href = url;
-      a.download = `receipts-${new Date().toISOString().slice(0, 10)}.zip`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
     },
   });
 
