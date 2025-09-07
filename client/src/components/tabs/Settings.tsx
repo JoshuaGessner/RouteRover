@@ -27,15 +27,15 @@ export function SettingsTab() {
 
   const { data: settings } = useQuery<AppSettings | null>({
     queryKey: ["/api/settings"],
-    onSuccess: (data) => {
-      if (data) {
-        setApiKey(data.googleApiKey || "");
-        setMileageRate(data.mileageRate?.toString() || "0.655");
-      }
-    },
   });
 
-  const { data: errorLogs = [] } = useQuery({
+  // Update form data when settings are loaded
+  if (settings && settings.googleApiKey !== apiKey) {
+    setApiKey(settings.googleApiKey || "");
+    setMileageRate(settings.mileageRate?.toString() || "0.655");
+  }
+
+  const { data: errorLogs = [] } = useQuery<any[]>({
     queryKey: ["/api/error-logs"],
   });
 
@@ -68,9 +68,11 @@ export function SettingsTab() {
 
   const generateShareCodeMutation = useMutation({
     mutationFn: async () => {
-      return await apiRequest('/api/share/generate', {
-        method: 'POST'
+      const response = await fetch('/api/share/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
       });
+      return await response.json();
     },
     onSuccess: (data) => {
       if (data.shareCode) {
@@ -81,11 +83,12 @@ export function SettingsTab() {
 
   const importSharedDataMutation = useMutation({
     mutationFn: async (shareCode: string) => {
-      return await apiRequest('/api/share/import', {
+      const response = await fetch('/api/share/import', {
         method: 'POST',
         body: JSON.stringify({ shareCode }),
         headers: { 'Content-Type': 'application/json' }
       });
+      return await response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/trips"] });
@@ -334,7 +337,9 @@ export function SettingsTab() {
           {user && (
             <div className="p-3 bg-muted rounded-lg mb-4">
               <p className="text-sm font-medium">Signed in as:</p>
-              <p className="text-sm text-muted-foreground">{user.email || user.firstName || 'User'}</p>
+              <p className="text-sm text-muted-foreground">
+                {(user as any).email || (user as any).firstName || (user as any).username || 'User'}
+              </p>
             </div>
           )}
 
