@@ -760,24 +760,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/export/routes", async (req, res) => {
     try {
       const userId = getCurrentUserId(req);
-      const trips = await storage.getAllTrips(userId);
-      const expenses = await storage.getAllExpenses(userId);
+      const trips = await storage.getTrips(userId);
+      const expenses = await storage.getExpenses(userId);
       
       // Create expense lookup by trip ID
-      const expensesByTrip = expenses.reduce((acc, expense) => {
+      const expensesByTrip = expenses.reduce((acc: Record<string, any[]>, expense: any) => {
         if (expense.tripId) {
           if (!acc[expense.tripId]) acc[expense.tripId] = [];
           acc[expense.tripId].push(expense);
         }
         return acc;
-      }, {} as Record<string, typeof expenses>);
+      }, {} as Record<string, any[]>);
 
       // Format data for IRS compliance
-      const irsData = trips.map(trip => {
+      const irsData = trips.map((trip: any) => {
         const startLocation = trip.startLocation as any;
         const endLocation = trip.endLocation as any;
         const tripExpenses = expensesByTrip[trip.id] || [];
-        const totalExpenses = tripExpenses.reduce((sum, exp) => sum + exp.amount, 0);
+        const totalExpenses = tripExpenses.reduce((sum: number, exp: any) => sum + exp.amount, 0);
         
         return {
           'Date': new Date(trip.startTime).toLocaleDateString('en-US'),

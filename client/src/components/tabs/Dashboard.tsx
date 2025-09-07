@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { MapPin, Clock, DollarSign } from "lucide-react";
+import { MapPin, Clock, DollarSign, Download } from "lucide-react";
 import type { Trip, Expense } from "@shared/schema";
 
 export function DashboardTab() {
@@ -29,6 +29,10 @@ export function DashboardTab() {
 
   const totalMiles = todayTrips.reduce((sum, trip) => sum + (trip.distance || 0), 0);
   const totalExpenses = todayExpenses.reduce((sum, expense) => sum + expense.amount, 0);
+
+  const handleExportData = () => {
+    window.open('/api/export/routes', '_blank');
+  };
 
   return (
     <div className="p-4 space-y-6" data-testid="dashboard-tab">
@@ -133,9 +137,18 @@ export function DashboardTab() {
               </div>
             ))}
           </div>
-          <div className="p-4 border-t border-border">
+          <div className="p-4 border-t border-border space-y-2">
             <Button variant="ghost" className="w-full" data-testid="view-all-routes">
               View All Routes
+            </Button>
+            <Button 
+              variant="outline" 
+              className="w-full" 
+              onClick={handleExportData}
+              data-testid="export-routes"
+            >
+              <Download className="w-4 h-4 mr-2" />
+              Export IRS Report
             </Button>
           </div>
         </CardContent>
