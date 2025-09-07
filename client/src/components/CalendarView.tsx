@@ -2,14 +2,26 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Calendar, momentLocalizer, View } from "react-big-calendar";
 import moment from "moment";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CalendarIcon, TrendingUp, MapPin, DollarSign, Upload, FileUp } from "lucide-react";
+import { CalendarIcon, TrendingUp, MapPin, DollarSign, Upload, FileUp, BarChart3, PieChart, Activity } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import "react-big-calendar/lib/css/react-big-calendar.css";
+
+// Enhanced color palette for better visual design
+const COLORS = {
+  primary: '#3b82f6',
+  secondary: '#06b6d4',
+  success: '#10b981',
+  warning: '#f59e0b',
+  danger: '#ef4444',
+  trip: '#8b5cf6',
+  hotel: '#f97316',
+  muted: '#64748b'
+};
 
 const localizer = momentLocalizer(moment);
 
@@ -153,78 +165,188 @@ export function CalendarView() {
         <TabsContent value="calendar" className="space-y-6">
           {/* Analytics Summary Cards */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <MapPin className="w-4 h-4 text-blue-600" />
-              <span className="text-sm font-medium">Total Miles</span>
+        <Card className="bg-gradient-to-r from-blue-50 to-cyan-50 border-blue-200">
+          <CardContent className="p-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <MapPin className="w-5 h-5 text-blue-600" />
+              </div>
+              <span className="text-sm font-medium text-gray-700">Total Miles</span>
             </div>
-            <p className="text-2xl font-bold mt-1">
-              {analytics?.totalDistance?.toFixed(1) || '0.0'}
-            </p>
+            <div className="mt-3">
+              <div className="text-3xl font-bold text-gray-900">
+                {analytics?.totalDistance?.toFixed(1) || '0.0'}
+                <span className="text-lg text-muted-foreground ml-1">miles</span>
+              </div>
+            </div>
           </CardContent>
         </Card>
         
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <DollarSign className="w-4 h-4 text-green-600" />
-              <span className="text-sm font-medium">Total Expenses</span>
+        <Card className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
+          <CardContent className="p-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-green-100 rounded-lg">
+                <DollarSign className="w-5 h-5 text-green-600" />
+              </div>
+              <span className="text-sm font-medium text-gray-700">Total Expenses</span>
             </div>
-            <p className="text-2xl font-bold mt-1">
-              ${analytics?.totalAmount?.toFixed(2) || '0.00'}
-            </p>
+            <div className="mt-3">
+              <div className="text-3xl font-bold text-gray-900">
+                ${analytics?.totalAmount?.toFixed(2) || '0.00'}
+              </div>
+              <div className="text-xs text-green-600 mt-1">@$0.655/mile</div>
+            </div>
           </CardContent>
         </Card>
         
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <CalendarIcon className="w-4 h-4 text-purple-600" />
-              <span className="text-sm font-medium">Trip Days</span>
+        <Card className="bg-gradient-to-r from-purple-50 to-violet-50 border-purple-200">
+          <CardContent className="p-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-purple-100 rounded-lg">
+                <CalendarIcon className="w-5 h-5 text-purple-600" />
+              </div>
+              <span className="text-sm font-medium text-gray-700">Trip Days</span>
             </div>
-            <p className="text-2xl font-bold mt-1">
-              {analytics?.tripDays || 0}
-            </p>
+            <div className="mt-3">
+              <div className="text-3xl font-bold text-gray-900">
+                {analytics?.tripDays || 0}
+                <span className="text-lg text-muted-foreground ml-1">days</span>
+              </div>
+            </div>
           </CardContent>
         </Card>
         
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <TrendingUp className="w-4 h-4 text-orange-600" />
-              <span className="text-sm font-medium">Avg Daily Miles</span>
+        <Card className="bg-gradient-to-r from-orange-50 to-amber-50 border-orange-200">
+          <CardContent className="p-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-orange-100 rounded-lg">
+                <TrendingUp className="w-5 h-5 text-orange-600" />
+              </div>
+              <span className="text-sm font-medium text-gray-700">Avg Daily Miles</span>
             </div>
-            <p className="text-2xl font-bold mt-1">
-              {analytics?.avgDailyDistance?.toFixed(1) || '0.0'}
-            </p>
+            <div className="mt-3">
+              <div className="text-3xl font-bold text-gray-900">
+                {analytics?.avgDailyDistance?.toFixed(1) || '0.0'}
+                <span className="text-lg text-muted-foreground ml-1">mi/day</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Enhanced Data Visualizations Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <BarChart3 className="w-5 h-5 text-blue-600" />
+              Monthly Trends
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {analytics?.monthlyTrends?.slice(0, 6).map((month, idx) => (
+                <div key={month.month} className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-2 h-2 rounded-full bg-blue-600"></div>
+                    <span className="text-sm font-medium">{moment(month.month).format('MMM YYYY')}</span>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-sm font-semibold">{month.distance.toFixed(0)} mi</div>
+                    <div className="text-xs text-muted-foreground">${month.amount.toFixed(0)}</div>
+                  </div>
+                </div>
+              )) || (
+                <div className="text-sm text-muted-foreground text-center py-8">
+                  No travel data available yet. Import your schedule to see trends.
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Activity className="w-5 h-5 text-green-600" />
+              Trip Efficiency
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-muted-foreground">Cost per Mile</span>
+                <span className="font-semibold">$0.655</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-muted-foreground">Total API Calls</span>
+                <Badge variant="secondary" className="text-xs">
+                  {analytics?.apiCallsMade || 0} calls
+                </Badge>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-muted-foreground">Avg Trip Length</span>
+                <span className="font-semibold">
+                  {analytics?.tripDays > 0 ? (analytics.totalDistance / analytics.tripDays).toFixed(1) : '0.0'} mi
+                </span>
+              </div>
+              <div className="pt-2 border-t">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium text-green-700">Efficiency Score</span>
+                  <div className="flex items-center gap-2">
+                    <div className="w-16 bg-gray-200 rounded-full h-2">
+                      <div 
+                        className="bg-green-600 h-2 rounded-full" 
+                        style={{width: `${Math.min(85, 60 + (analytics?.avgDailyDistance || 0) / 10)}%`}}
+                      ></div>
+                    </div>
+                    <span className="text-sm font-semibold text-green-700">
+                      {Math.min(85, 60 + Math.round((analytics?.avgDailyDistance || 0) / 10))}%
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
 
       {/* View Controls */}
-      <div className="flex gap-2">
-        <Button 
-          variant={view === 'month' ? 'default' : 'outline'} 
-          onClick={() => setView('month')}
-          data-testid="month-view-btn"
-        >
-          Month
-        </Button>
-        <Button 
-          variant={view === 'week' ? 'default' : 'outline'} 
-          onClick={() => setView('week')}
-          data-testid="week-view-btn"
-        >
-          Week
-        </Button>
-        <Button 
-          variant={view === 'day' ? 'default' : 'outline'} 
-          onClick={() => setView('day')}
-          data-testid="day-view-btn"
-        >
-          Day
-        </Button>
+      <div className="flex justify-between items-center">
+        <div className="flex gap-2">
+          <Button 
+            variant={view === 'month' ? 'default' : 'outline'} 
+            onClick={() => setView('month')}
+            data-testid="month-view-btn"
+          >
+            Month
+          </Button>
+          <Button 
+            variant={view === 'week' ? 'default' : 'outline'} 
+            onClick={() => setView('week')}
+            data-testid="week-view-btn"
+          >
+            Week
+          </Button>
+          <Button 
+            variant={view === 'day' ? 'default' : 'outline'} 
+            onClick={() => setView('day')}
+            data-testid="day-view-btn"
+          >
+            Day
+          </Button>
+        </div>
+        
+        <div className="flex items-center gap-4 text-sm">
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded-full" style={{backgroundColor: COLORS.trip}}></div>
+            <span>Business Trips</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded-full" style={{backgroundColor: COLORS.hotel}}></div>
+            <span>Hotel Stays</span>
+          </div>
+        </div>
       </div>
 
       {/* Calendar */}

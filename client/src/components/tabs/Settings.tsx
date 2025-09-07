@@ -45,6 +45,11 @@ export function SettingsTab() {
     queryKey: ["/api/error-logs"],
   });
 
+  const currentMonth = new Date().toISOString().slice(0, 7);
+  const { data: apiUsage } = useQuery<{totalCalls: number, totalCost: number, usage: any[], month: string}>({
+    queryKey: ["/api/usage", currentMonth],
+  });
+
   const saveSettingsMutation = useMutation({
     mutationFn: async (settingsData: any) => {
       const response = await apiRequest("POST", "/api/settings", settingsData);
@@ -166,12 +171,37 @@ export function SettingsTab() {
               </p>
             </div>
             
-            <div className="flex items-center justify-between py-2 border-t border-border">
-              <span className="text-sm">API Usage This Month</span>
-              <span className="text-sm font-medium">Usage data available after API key is saved</span>
+            <div className="space-y-3 pt-4 border-t border-border">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">API Usage This Month</span>
+                <Badge variant="outline" className="text-xs">
+                  {apiUsage ? `${apiUsage.totalCalls} calls` : 'No data'}
+                </Badge>
+              </div>
+              
+              <div className="space-y-2">
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>Google Directions API</span>
+                  <span>{apiUsage ? `$${apiUsage.totalCost.toFixed(3)}` : '$0.000'}</span>
+                </div>
+                <Progress 
+                  value={apiUsage ? Math.min((apiUsage.totalCalls / 40000) * 100, 100) : 0} 
+                  className="h-2" 
+                />
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>Free tier limit: 40,000/month</span>
+                  <span>{apiUsage ? `${(40000 - apiUsage.totalCalls).toLocaleString()} remaining` : '40,000 remaining'}</span>
+                </div>
+              </div>
+              
+              {apiUsage && apiUsage.totalCalls > 35000 && (
+                <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <p className="text-xs text-yellow-800">
+                    ⚠️ Approaching API limit. Consider upgrading your Google Cloud plan.
+                  </p>
+                </div>
+              )}
             </div>
-            
-            <Progress value={0} className="w-full" />
             
             <div>
               <Label className="text-sm font-medium mb-2 block">Default Start Address</Label>
