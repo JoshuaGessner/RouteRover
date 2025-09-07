@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Save, Camera, Image, Fuel, Utensils, Car } from "lucide-react";
+import { Save, Camera, Image, Fuel, Utensils, Car, Eye } from "lucide-react";
 import { useCamera } from "@/hooks/useCamera";
 import { apiRequest } from "@/lib/queryClient";
 import type { Expense } from "@shared/schema";
@@ -17,12 +17,18 @@ export function ExpensesTab() {
   const [category, setCategory] = useState("gas");
   const [merchant, setMerchant] = useState("");
   const [notes, setNotes] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadSuccess, setUploadSuccess] = useState(false);
   
   const queryClient = useQueryClient();
   const { captureImage, selectFromGallery, isCapturing, error: cameraError } = useCamera();
 
   const { data: expenses = [] } = useQuery<Expense[]>({
     queryKey: ["/api/expenses"],
+  });
+
+  const { data: receipts = [] } = useQuery<any[]>({
+    queryKey: ["/api/receipts"],
   });
 
   const createExpenseMutation = useMutation({
@@ -73,18 +79,41 @@ export function ExpensesTab() {
   };
 
   const uploadReceipt = async (imageFile: File) => {
-    const formData = new FormData();
-    formData.append('image', imageFile);
+    setIsUploading(true);
+    setUploadSuccess(false);
     
-    const response = await fetch('/api/receipts', {
-      method: 'POST',
-      body: formData,
-    });
-    
-    if (response.ok) {
-      queryClient.invalidateQueries({ queryKey: ["/api/receipts"] });
-    } else {
-      throw new Error('Upload failed');
+    try {
+      const formData = new FormData();
+      formData.append('image', imageFile);
+      
+      const response = await fetch('/api/receipts', {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (response.ok) {
+        const receiptData = await response.json();
+        
+        // Pre-fill expense form with extracted OCR data
+        if (receiptData.extractedData) {
+          if (receiptData.extractedData.amount) {
+            setAmount(receiptData.extractedData.amount.toString());
+          }
+          if (receiptData.extractedData.merchant) {
+            setMerchant(receiptData.extractedData.merchant);
+          }
+        }
+        
+        queryClient.invalidateQueries({ queryKey: ["/api/receipts"] });
+        setUploadSuccess(true);
+        
+        // Clear success message after 5 seconds
+        setTimeout(() => setUploadSuccess(false), 5000);
+      } else {
+        throw new Error('Upload failed');
+      }
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -189,15 +218,15 @@ export function ExpensesTab() {
             <div className="grid grid-cols-2 gap-4">
               <Button
                 onClick={handleCaptureReceipt}
-                disabled={isCapturing}
+                disabled={isCapturing || isUploading}
                 data-testid="capture-receipt"
               >
                 <Camera className="w-4 h-4 mr-2" />
-                Camera
+                {isCapturing ? 'Taking Photo...' : 'Camera'}
               </Button>
               <Button
                 variant="secondary"
-                disabled={isCapturing}
+                disabled={isCapturing || isUploading}
                 onClick={handleGallerySelect}
                 data-testid="select-from-gallery"
               >
@@ -206,17 +235,100 @@ export function ExpensesTab() {
               </Button>
             </div>
             
-            {cameraError && (
-              <p className="text-xs text-destructive mb-2">
-                Camera Error: {cameraError}
-              </p>
+            {/* Upload Status Messages */}
+            {isUploading && (
+              <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="flex items-center space-x-2">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                  <p className="text-sm text-blue-800 font-medium">Processing receipt...</p>
+                </div>
+                <p className="text-xs text-blue-600 mt-1">
+                  OCR scanning in progress. This may take 15-30 seconds.
+                </p>
+              </div>
             )}
+            
+            {uploadSuccess && (
+              <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                <p className="text-sm text-green-800 font-medium">✓ Receipt processed successfully!</p>
+                <p className="text-xs text-green-600 mt-1">
+                  Form has been pre-filled with extracted data. Check the Expenses tab to see your receipt.
+                </p>
+              </div>
+            )}
+            
+            {cameraError && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-sm text-red-800 font-medium">Camera Error</p>
+                <p className="text-xs text-red-600">{cameraError}</p>
+              </div>
+            )}
+            
             <p className="text-xs text-muted-foreground">
               OCR will automatically extract merchant, date, amount, and tax information
             </p>
           </div>
         </CardContent>
       </Card>
+
+      {/* Recent Receipts */}
+      {receipts.length > 0 && (
+        <Card data-testid="recent-receipts">
+          <CardContent className="pt-6">
+            <h3 className="text-lg font-semibold mb-4">Recent Receipts</h3>
+            
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+              {receipts.slice(0, 6).map((receipt: any) => (
+                <Card key={receipt.id} className="overflow-hidden shadow-sm">
+                  <div className="aspect-[3/4] bg-muted relative">
+                    {receipt.imageUrl ? (
+                      <img 
+                        src={receipt.imageUrl} 
+                        alt="Receipt scan" 
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <div className="text-muted-foreground text-xs">No Image</div>
+                      </div>
+                    )}
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      className="absolute top-2 right-2 p-2"
+                      data-testid={`view-receipt-${receipt.id}`}
+                    >
+                      <Eye className="w-3 h-3" />
+                    </Button>
+                  </div>
+                  <div className="p-2">
+                    <div className="text-xs font-medium truncate">
+                      {receipt.extractedData?.merchant || 'Unknown Merchant'}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      ${receipt.extractedData?.amount?.toFixed(2) || '0.00'}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {new Date(receipt.uploadDate).toLocaleDateString()}
+                    </div>
+                    {receipt.extractedData && (
+                      <Badge variant="secondary" className="text-xs mt-1">
+                        OCR Processed
+                      </Badge>
+                    )}
+                  </div>
+                </Card>
+              ))}
+            </div>
+            
+            {receipts.length > 6 && (
+              <p className="text-sm text-muted-foreground mt-4 text-center">
+                Showing 6 of {receipts.length} receipts. View all in the Receipts section.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Recent Expenses */}
       <Card data-testid="recent-expenses">
