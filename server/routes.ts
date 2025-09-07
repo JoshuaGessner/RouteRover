@@ -813,16 +813,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // Save all accumulated entries to database
-      for (const entry of results) {
-        if (entry) {
-          const { originalData, ...entryWithoutOriginalData } = entry;
-          await storage.createScheduleEntry({
-            ...entryWithoutOriginalData,
-            originalData: originalData ? JSON.stringify(originalData) : null
-          });
-        }
-      }
+      // Entries have already been saved to database during processing
 
       return res.json({
         message: "Schedule data processed successfully",
