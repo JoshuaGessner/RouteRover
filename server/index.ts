@@ -1,10 +1,16 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { setupSecurity, sanitizeInput } from "./security.js";
 
 const app = express();
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+
+// Setup security middleware first
+setupSecurity(app);
+
+app.use(express.json({ limit: '10mb' })); // Limit JSON payload size
+app.use(express.urlencoded({ extended: false, limit: '10mb' })); // Limit URL-encoded payload size
+app.use(sanitizeInput); // Sanitize all inputs
 
 app.use((req, res, next) => {
   const start = Date.now();
