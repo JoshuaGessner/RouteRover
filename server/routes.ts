@@ -359,7 +359,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/schedule/process", async (req, res) => {
     try {
-      const { data, headerMapping, mileageRate, fileHash } = req.body;
+      const { data, headerMapping, mileageRate, fileHash, fileName } = req.body;
       const userId = getCurrentUserId(req);
       
       const userSettings = await storage.getUserSettings(userId);
@@ -426,20 +426,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const entriesByDate = new Map();
       for (const [dateStr, entries] of filteredDateRanges) {
         for (const row of entries) {
-        const rawDate = row[headerMapping.date];
-        // Handle Excel date format (numeric days since 1900-01-01) 
-        let parsedDate: Date;
-        if (typeof rawDate === 'number') {
-          // Excel dates: add days to Excel epoch (1900-01-01, but Excel incorrectly treats 1900 as leap year)
-          parsedDate = new Date(1900, 0, rawDate - 1); // -1 because Excel starts from day 1, not 0
-        } else {
-          parsedDate = new Date(rawDate);
+          const rawDate = row[headerMapping.date];
+          // Handle Excel date format (numeric days since 1900-01-01) 
+          let parsedDate: Date;
+          if (typeof rawDate === 'number') {
+            // Excel dates: add days to Excel epoch (1900-01-01, but Excel incorrectly treats 1900 as leap year)
+            parsedDate = new Date(1900, 0, rawDate - 1); // -1 because Excel starts from day 1, not 0
+          } else {
+            parsedDate = new Date(rawDate);
+          }
+          const date = parsedDate.toDateString();
+          if (!entriesByDate.has(date)) {
+            entriesByDate.set(date, []);
+          }
+          entriesByDate.get(date).push(row);
         }
-        const date = parsedDate.toDateString();
-        if (!entriesByDate.has(date)) {
-          entriesByDate.set(date, []);
-        }
-        entriesByDate.get(date).push(row);
       }
 
       const results = [];
@@ -560,8 +561,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         }
       }
-      
-      res.json(results);
+
+      // Record that this file has been processed
+      if (fileHash && fileName) {
+        await storage.createProcessedFile({
+          userId,
+          fileHash,
+          fileName,
+          processedAt: new Date(),
+          recordCount: newDataCount
+        });
+      }
+
+      // Save all accumulated entries to database
+      for (const entry of results) {
+        await storage.createScheduleEntry(entry);
+      }
+
+      return res.json({
+        message: "Schedule data processed successfully",
+        entriesProcessed: results.length,
+        newDatesProcessed: filteredDateRanges.size,
+        apiCallsMade: Array.from(entriesByDate.values()).reduce((sum, dayEntries) => sum + dayEntries.length, 0),
+        skippedDuplicates: data.length - newDataCount
+      });
     } catch (error) {
       console.error("Schedule processing error:", error);
       res.status(500).json({ message: `Failed to process schedule: ${error.message}` });
