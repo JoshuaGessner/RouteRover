@@ -199,7 +199,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Helper function to get current user ID
   const getCurrentUserId = (req: any): string => {
-    return req.user?.claims?.sub || "demo-user-123"; // Fallback for testing
+    // Try multiple ways to get user ID for better compatibility
+    if (req.user?.claims?.sub) {
+      return req.user.claims.sub;
+    }
+    if (req.user?.id) {
+      return req.user.id;
+    }
+    // If no user session, throw error instead of fallback
+    throw new Error("User not authenticated - no valid user session found");
   };
   
   // Trips routes
