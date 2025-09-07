@@ -62,6 +62,13 @@ export function CalendarView() {
     totalAmount?: number; 
     tripDays?: number;
     avgDailyDistance?: number;
+    monthlyTrends?: Array<{
+      month: string;
+      distance: number;
+      amount: number;
+      days: number;
+      avgDistance: number;
+    }>;
   }>({
     queryKey: ["/api/analytics"],
   });
@@ -289,13 +296,13 @@ export function CalendarView() {
               <div className="flex justify-between items-center">
                 <span className="text-sm text-muted-foreground">Total API Calls</span>
                 <Badge variant="secondary" className="text-xs">
-                  {analytics?.apiCallsMade || 0} calls
+                  {0} calls
                 </Badge>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-sm text-muted-foreground">Avg Trip Length</span>
                 <span className="font-semibold">
-                  {analytics?.tripDays > 0 ? (analytics.totalDistance / analytics.tripDays).toFixed(1) : '0.0'} mi
+                  {(analytics?.tripDays || 0) > 0 && analytics?.totalDistance ? (analytics.totalDistance / (analytics.tripDays || 1)).toFixed(1) : '0.0'} mi
                 </span>
               </div>
               <div className="pt-2 border-t">
@@ -401,7 +408,7 @@ export function CalendarView() {
                 console.log('Export completed successfully');
               } catch (error) {
                 console.error('Export failed:', error);
-                alert(`Failed to export schedule data: ${error.message}`);
+                alert(`Failed to export schedule data: ${error instanceof Error ? error.message : 'Unknown error'}`);
               }
             }}
             data-testid="export-schedule"
@@ -417,7 +424,7 @@ export function CalendarView() {
       <Card className="border-0 shadow-lg bg-white w-full overflow-hidden">
         <CardContent className="p-0">
           <div className="h-[600px] w-full rounded-lg overflow-hidden">
-            <style jsx>{`
+            <style>{`
               .rbc-calendar {
                 background: white;
                 font-family: inherit;

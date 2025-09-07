@@ -72,7 +72,7 @@ export function DashboardTab() {
       console.log('Export completed successfully');
     } catch (error) {
       console.error('Export failed:', error);
-      alert(`Failed to export routes data: ${error.message}`);
+      alert(`Failed to export routes data: ${error instanceof Error ? error.message : 'Please try again.'}`);
     }
   };
 
