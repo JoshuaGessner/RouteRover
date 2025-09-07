@@ -433,11 +433,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/settings", async (req, res) => {
     try {
       const userId = getCurrentUserId(req);
+      console.log("Received settings data:", req.body);
+      console.log("User ID:", userId);
       const validatedData = insertAppSettingsSchema.parse({ ...req.body, userId });
+      console.log("Validated data:", validatedData);
       const settings = await storage.createOrUpdateSettings(validatedData);
       res.json(settings);
     } catch (error) {
-      res.status(400).json({ message: "Invalid settings data" });
+      console.error("Settings validation error:", error);
+      res.status(400).json({ message: `Invalid settings data: ${error.message}` });
     }
   });
 
