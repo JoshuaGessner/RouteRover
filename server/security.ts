@@ -23,10 +23,10 @@ export function setupSecurity(app: Express) {
     crossOriginEmbedderPolicy: false, // Needed for some APIs
   }));
 
-  // CORS configuration for production
+  // CORS configuration - simplified for easier deployment
   const corsOptions = {
     origin: process.env.NODE_ENV === 'production' 
-      ? process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:5000']
+      ? (process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : true)
       : true,
     credentials: true,
     optionsSuccessStatus: 200
