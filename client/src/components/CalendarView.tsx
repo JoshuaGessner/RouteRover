@@ -445,7 +445,6 @@ export function CalendarView() {
             size="sm"
             onClick={async () => {
               try {
-                console.log('Starting schedule export...');
                 const response = await fetch('/api/export/schedule', {
                   method: 'GET',
                   credentials: 'include',
@@ -454,14 +453,12 @@ export function CalendarView() {
                   }
                 });
                 
-                console.log('Export response status:', response.status);
                 
                 if (!response.ok) {
                   throw new Error(`Export failed with status ${response.status}`);
                 }
                 
                 const blob = await response.blob();
-                console.log('Blob created, size:', blob.size, 'type:', blob.type);
                 
                 if (blob.size === 0) {
                   throw new Error('Received empty file');
@@ -481,7 +478,6 @@ export function CalendarView() {
                 document.body.removeChild(link);
                 URL.revokeObjectURL(url);
                 
-                console.log('Export completed successfully');
               } catch (error) {
                 console.error('Export failed:', error);
                 alert(`Failed to export schedule data: ${error instanceof Error ? error.message : 'Unknown error'}`);

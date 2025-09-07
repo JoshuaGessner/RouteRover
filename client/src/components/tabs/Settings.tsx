@@ -866,7 +866,12 @@ export function SettingsTab() {
             <div className="p-3 bg-muted rounded-lg mb-4">
               <p className="text-sm font-medium">Signed in as:</p>
               <p className="text-sm text-muted-foreground">
-                {String((user as any)?.email || (user as any)?.firstName || (user as any)?.username || 'User')}
+                {(() => {
+                  if (typeof user === 'object' && user) {
+                    return String((user as any)?.email || (user as any)?.firstName || (user as any)?.username || 'User');
+                  }
+                  return 'User';
+                })()}
               </p>
             </div>
           )}
