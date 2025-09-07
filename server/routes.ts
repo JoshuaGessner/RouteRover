@@ -733,14 +733,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }));
 
           // Check if this is an off day (skip all calculations)
-          const isOffDay = locations.some(location => detectOffDay(location.notes));
+          const isOffDay = locations.some((location: any) => detectOffDay(location.notes));
           if (isOffDay) {
             const offDayEntry = await storage.createScheduleEntry({
               userId,
               date,
               startAddress: previousHotelAddress || defaultStartAddress,
               endAddress: defaultEndAddress,
-              notes: `Off day - No travel calculated (${locations.map(l => l.notes).filter(n => n).join(', ')})`,
+              notes: `Off day - No travel calculated (${locations.map((l: any) => l.notes).filter((n: any) => n).join(', ')})`,
               calculatedDistance: 0,
               calculatedAmount: 0,
               isHotelStay: false,
