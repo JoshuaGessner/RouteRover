@@ -397,6 +397,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const results = [];
       let previousHotelAddress = null;
       
+      // Clear existing schedule entries before adding new ones (optional - or keep to accumulate)
+      // await storage.clearScheduleEntries(userId); // Uncomment to replace vs accumulate
+      
       // Process each day to build daily routes
       for (const [dateString, dayEntries] of Array.from(entriesByDate)) {
         try {
@@ -446,19 +449,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
           const calculatedAmount = totalDayDistance * (mileageRate || 0.655);
           
-          // Create a single schedule entry for the whole day
-          const entry = await storage.createScheduleEntry({
-            userId,
-            date,
-            startAddress: dayStartAddress,
-            endAddress: dayEndAddress,
-            notes: `Daily route: ${locations.map((l: any) => l.address).join(' → ')} ${hasHotelStay ? '(Hotel stay)' : ''}`,
-            calculatedDistance: totalDayDistance,
-            calculatedAmount,
-            isHotelStay: hasHotelStay,
-            processingStatus: 'calculated',
-            originalData: dayEntries
-          });
+          // Check if entry for this date already exists
+          const existingEntry = await storage.getScheduleEntryByDate(userId, date);
+          
+          let entry;
+          if (existingEntry) {
+            // Update existing entry by combining data
+            entry = await storage.updateScheduleEntry(existingEntry.id, {
+              calculatedDistance: (existingEntry.calculatedDistance || 0) + totalDayDistance,
+              calculatedAmount: (existingEntry.calculatedAmount || 0) + calculatedAmount,
+              notes: `${existingEntry.notes} | ${locations.map((l: any) => l.address).join(' → ')} ${hasHotelStay ? '(Hotel stay)' : ''}`,
+              isHotelStay: existingEntry.isHotelStay || hasHotelStay,
+              processingStatus: 'calculated',
+              originalData: [...(existingEntry.originalData as any[] || []), ...dayEntries]
+            });
+          } else {
+            // Create new entry
+            entry = await storage.createScheduleEntry({
+              userId,
+              date,
+              startAddress: dayStartAddress,
+              endAddress: dayEndAddress,
+              notes: `Daily route: ${locations.map((l: any) => l.address).join(' → ')} ${hasHotelStay ? '(Hotel stay)' : ''}`,
+              calculatedDistance: totalDayDistance,
+              calculatedAmount,
+              isHotelStay: hasHotelStay,
+              processingStatus: 'calculated',
+              originalData: dayEntries
+            });
+          }
           
           results.push(entry);
           
@@ -498,6 +517,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Schedule processing error:", error);
       res.status(500).json({ message: `Failed to process schedule: ${error.message}` });
+    }
+  });
+
+  // Analytics route
+  app.get("/api/analytics", async (req, res) => {
+    try {
+      const userId = getCurrentUserId(req);
+      const scheduleEntries = await storage.getScheduleEntries(userId);
+      
+      const totalDistance = scheduleEntries.reduce((sum, entry) => sum + (entry.calculatedDistance || 0), 0);
+      const totalAmount = scheduleEntries.reduce((sum, entry) => sum + (entry.calculatedAmount || 0), 0);
+      const tripDays = scheduleEntries.length;
+      const avgDailyDistance = tripDays > 0 ? totalDistance / tripDays : 0;
+      
+      res.json({
+        totalDistance,
+        totalAmount,
+        tripDays,
+        avgDailyDistance
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch analytics" });
     }
   });
 

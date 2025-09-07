@@ -23,7 +23,7 @@ import {
   type InsertErrorLog
 } from "@shared/schema";
 import { db } from "./db";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { randomUUID } from "crypto";
 
 export interface IStorage {
@@ -221,6 +221,14 @@ export class DatabaseStorage implements IStorage {
   async createScheduleEntry(insertEntry: InsertScheduleEntry): Promise<ScheduleEntry> {
     const [entry] = await db.insert(scheduleEntries).values(insertEntry).returning();
     return entry;
+  }
+
+  async getScheduleEntryByDate(userId: string, date: Date): Promise<ScheduleEntry | undefined> {
+    const [entry] = await db
+      .select()
+      .from(scheduleEntries)
+      .where(and(eq(scheduleEntries.userId, userId), eq(scheduleEntries.date, date)));
+    return entry || undefined;
   }
 
   async updateScheduleEntry(id: string, updates: Partial<ScheduleEntry>): Promise<ScheduleEntry | undefined> {

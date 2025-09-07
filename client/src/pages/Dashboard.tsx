@@ -7,6 +7,7 @@ import { ExpensesTab } from "@/components/tabs/Expenses";
 import { ReceiptsTab } from "@/components/tabs/Receipts";
 import { ScheduleTab } from "@/components/tabs/Schedule";
 import { SettingsTab } from "@/components/tabs/Settings";
+import { CalendarView } from "@/components/CalendarView";
 import { Button } from "@/components/ui/button";
 import { 
   DropdownMenu,
@@ -16,7 +17,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Plus, MapPin, Receipt, FileUp, Camera } from "lucide-react";
 
-type TabType = 'dashboard' | 'tracking' | 'expenses' | 'receipts' | 'schedule' | 'settings';
+type TabType = 'dashboard' | 'tracking' | 'expenses' | 'receipts' | 'schedule' | 'calendar' | 'settings';
 
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState<TabType>('dashboard');
@@ -33,6 +34,8 @@ export default function Dashboard() {
         return <ReceiptsTab />;
       case 'schedule':
         return <ScheduleTab />;
+      case 'calendar':
+        return <CalendarView />;
       case 'settings':
         return <SettingsTab />;
       default:
