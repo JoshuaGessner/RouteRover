@@ -572,7 +572,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/schedule/import", uploadSchedule.single('file'), async (req: MulterRequest, res) => {
+  app.post("/api/schedule/import", isAuthenticated, uploadSchedule.single('file'), async (req: MulterRequest, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ message: "No file provided" });
@@ -603,7 +603,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/schedule/process", async (req, res) => {
+  app.post("/api/schedule/process", isAuthenticated, async (req, res) => {
     try {
       const { data, headerMapping, mileageRate, fileHash, fileName } = req.body;
       const userId = getCurrentUserId(req);
