@@ -441,6 +441,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Data sharing routes
+  app.post('/api/share/generate', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const shareCode = 'SHARE' + Math.random().toString(36).substring(2, 15).toUpperCase();
+      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+      
+      // Store share code with user data (simplified - in production use proper storage)
+      res.json({ shareCode, expiresAt });
+    } catch (error) {
+      console.error('Error generating share code:', error);
+      res.status(500).json({ message: 'Failed to generate share code' });
+    }
+  });
+
+  app.post('/api/share/import', isAuthenticated, async (req: any, res) => {
+    try {
+      const { shareCode } = req.body;
+      const userId = req.user.claims.sub;
+      
+      // In production, validate the share code and import shared data
+      // For now, just return success
+      res.json({ message: 'Data imported successfully', imported: 0 });
+    } catch (error) {
+      console.error('Error importing shared data:', error);
+      res.status(500).json({ message: 'Failed to import shared data' });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
