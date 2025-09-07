@@ -15,7 +15,8 @@ interface MulterRequest extends Request {
   file?: Express.Multer.File;
 }
 
-const upload = multer({ 
+// Multer config for image uploads (receipts)
+const uploadImages = multer({ 
   dest: "uploads/",
   limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
   fileFilter: (req, file, cb) => {
@@ -24,6 +25,26 @@ const upload = multer({
       cb(null, true);
     } else {
       cb(new Error('Only image files are allowed'));
+    }
+  }
+});
+
+// Multer config for schedule file uploads (CSV, Excel, text)
+const uploadSchedule = multer({ 
+  dest: "uploads/",
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+  fileFilter: (req, file, cb) => {
+    // Allow CSV, Excel, and text files for schedule imports
+    const allowedTypes = [
+      'text/csv',
+      'application/vnd.ms-excel',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'text/plain'
+    ];
+    if (allowedTypes.includes(file.mimetype) || file.originalname.match(/\.(csv|xlsx|xls|txt)$/i)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only CSV, Excel, and text files are allowed for schedule imports'));
     }
   }
 });
@@ -509,7 +530,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/receipts", isAuthenticated, upload.single('image'), async (req: MulterRequest, res) => {
+  app.post("/api/receipts", isAuthenticated, uploadImages.single('image'), async (req: MulterRequest, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ message: "No image file provided" });
@@ -551,7 +572,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/schedule/import", upload.single('file'), async (req: MulterRequest, res) => {
+  app.post("/api/schedule/import", uploadSchedule.single('file'), async (req: MulterRequest, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ message: "No file provided" });
