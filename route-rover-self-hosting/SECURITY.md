@@ -72,9 +72,8 @@
 SESSION_SECRET="minimum-32-character-random-string"
 DATABASE_URL="postgresql://user:pass@host:port/db"
 
-# Optional API keys - Keep private
-OPENAI_API_KEY="sk-your-key-here"
-GOOGLE_MAPS_API_KEY="your-key-here"
+# API keys are configured by users in Settings UI
+# (not as server environment variables)
 
 # Production settings
 NODE_ENV="production"

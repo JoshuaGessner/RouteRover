@@ -77,9 +77,8 @@ cat > .env << 'EOF'
 NODE_ENV="development"
 PORT="5000"
 
-# Optional API keys (leave empty to disable features)
-# GOOGLE_MAPS_API_KEY=""
-# OPENAI_API_KEY=""
+# API keys are configured through the application Settings UI
+# (not as server environment variables)
 
 # CORS (will allow all origins in development)
 # ALLOWED_ORIGINS="http://localhost:5000,https://yourdomain.com"

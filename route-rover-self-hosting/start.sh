@@ -8,7 +8,7 @@ if [ ! -f .env ]; then
     cp .env.example .env
     echo "⚠️  IMPORTANT: Edit .env file with your configuration before continuing!"
     echo "Required: DATABASE_URL, SESSION_SECRET"
-    echo "Optional: OPENAI_API_KEY, GOOGLE_MAPS_API_KEY"
+    echo "API keys are configured through the Settings UI"
     read -p "Press Enter when you've configured .env file..."
 fi
 

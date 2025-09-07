@@ -48,9 +48,8 @@ Edit `.env` file with your settings:
 DATABASE_URL="postgresql://user:password@localhost:5432/route_rover"
 SESSION_SECRET="your-very-secure-session-secret-minimum-32-characters"
 
-# Optional but recommended
-OPENAI_API_KEY="sk-your-openai-api-key-for-enhanced-ocr"
-GOOGLE_MAPS_API_KEY="your-google-maps-api-key-for-routes"
+# API keys are configured through the application Settings UI
+# (not as server environment variables)
 
 # Production settings
 NODE_ENV="production"
