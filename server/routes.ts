@@ -2,7 +2,7 @@ import type { Express, Request } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated, getCurrentUser } from "./simpleAuth.js";
-import { insertTripSchema, insertExpenseSchema, insertReceiptSchema, insertScheduleEntrySchema, insertAppSettingsSchema, insertErrorLogSchema } from "@shared/schema";
+import { insertTripSchema, insertExpenseSchema, insertReceiptSchema, insertScheduleEntrySchema, insertAppSettingsSchema, insertErrorLogSchema, insertYearlyRateSchema } from "@shared/schema";
 import multer from "multer";
 import Tesseract from "tesseract.js";
 import XLSX from "xlsx";
@@ -1164,6 +1164,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(updatedReceipt);
     } catch (error) {
       res.status(500).json({ message: "Failed to update receipt" });
+    }
+  });
+
+  // Yearly Rates routes
+  app.get("/api/yearly-rates", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getCurrentUserId(req);
+      const rates = await storage.getYearlyRates(userId);
+      res.json(rates);
+    } catch (error) {
+      console.error("Failed to fetch yearly rates:", error);
+      res.status(500).json({ message: "Failed to fetch yearly rates" });
+    }
+  });
+
+  app.post("/api/yearly-rates", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getCurrentUserId(req);
+      const rateData = insertYearlyRateSchema.parse({
+        ...req.body,
+        userId
+      });
+      const rate = await storage.createYearlyRate(rateData);
+      res.json(rate);
+    } catch (error) {
+      console.error("Failed to create yearly rate:", error);
+      res.status(500).json({ message: "Failed to create yearly rate" });
+    }
+  });
+
+  app.put("/api/yearly-rates/:id", isAuthenticated, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const updates = req.body;
+      const rate = await storage.updateYearlyRate(id, updates);
+      if (!rate) {
+        return res.status(404).json({ message: "Yearly rate not found" });
+      }
+      res.json(rate);
+    } catch (error) {
+      console.error("Failed to update yearly rate:", error);
+      res.status(500).json({ message: "Failed to update yearly rate" });
+    }
+  });
+
+  app.delete("/api/yearly-rates/:id", isAuthenticated, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const success = await storage.deleteYearlyRate(id);
+      if (!success) {
+        return res.status(404).json({ message: "Yearly rate not found" });
+      }
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Failed to delete yearly rate:", error);
+      res.status(500).json({ message: "Failed to delete yearly rate" });
     }
   });
 
