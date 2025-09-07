@@ -296,7 +296,7 @@ class MemStorage implements IStorage {
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    for (const user of this.users.values()) {
+    for (const user of Array.from(this.users.values())) {
       if (user.username === username) {
         return user;
       }
@@ -306,7 +306,7 @@ class MemStorage implements IStorage {
 
   async getUserByEmail(email: string): Promise<User | undefined> {
     if (!email) return undefined;
-    for (const user of this.users.values()) {
+    for (const user of Array.from(this.users.values())) {
       if (user.email === email) {
         return user;
       }
@@ -340,9 +340,12 @@ class MemStorage implements IStorage {
     } else {
       const id = userData.id || randomUUID();
       const user: User = { 
-        ...userData, 
         id, 
-        email: userData.email || null,
+        username: userData.username!,
+        email: userData.email ?? null,
+        password: userData.password!,
+        firstName: userData.firstName ?? null,
+        lastName: userData.lastName ?? null,
         createdAt: new Date(), 
         updatedAt: new Date() 
       };
@@ -362,7 +365,19 @@ class MemStorage implements IStorage {
 
   async createTrip(insertTrip: InsertTrip): Promise<Trip> {
     const id = randomUUID();
-    const trip: Trip = { ...insertTrip, id };
+    const trip: Trip = { 
+      id,
+      userId: insertTrip.userId ?? null,
+      startLocation: insertTrip.startLocation,
+      endLocation: insertTrip.endLocation ?? null,
+      startTime: insertTrip.startTime,
+      endTime: insertTrip.endTime ?? null,
+      distance: insertTrip.distance ?? null,
+      purpose: insertTrip.purpose,
+      notes: insertTrip.notes ?? null,
+      isActive: insertTrip.isActive ?? null,
+      autoDetected: insertTrip.autoDetected ?? null
+    };
     this.trips.set(id, trip);
     return trip;
   }
@@ -397,7 +412,17 @@ class MemStorage implements IStorage {
 
   async createExpense(insertExpense: InsertExpense): Promise<Expense> {
     const id = randomUUID();
-    const expense: Expense = { ...insertExpense, id };
+    const expense: Expense = { 
+      id,
+      userId: insertExpense.userId ?? null,
+      tripId: insertExpense.tripId ?? null,
+      amount: insertExpense.amount,
+      category: insertExpense.category,
+      merchant: insertExpense.merchant ?? null,
+      date: insertExpense.date,
+      notes: insertExpense.notes ?? null,
+      receiptId: insertExpense.receiptId ?? null
+    };
     this.expenses.set(id, expense);
     return expense;
   }
@@ -426,7 +451,15 @@ class MemStorage implements IStorage {
 
   async createReceipt(insertReceipt: InsertReceipt): Promise<Receipt> {
     const id = randomUUID();
-    const receipt: Receipt = { ...insertReceipt, id };
+    const receipt: Receipt = { 
+      id,
+      userId: insertReceipt.userId ?? null,
+      expenseId: insertReceipt.expenseId ?? null,
+      imageUrl: insertReceipt.imageUrl,
+      ocrText: insertReceipt.ocrText ?? null,
+      extractedData: insertReceipt.extractedData,
+      uploadDate: insertReceipt.uploadDate
+    };
     this.receipts.set(id, receipt);
     return receipt;
   }
@@ -455,7 +488,20 @@ class MemStorage implements IStorage {
 
   async createScheduleEntry(insertEntry: InsertScheduleEntry): Promise<ScheduleEntry> {
     const id = randomUUID();
-    const entry: ScheduleEntry = { ...insertEntry, id };
+    const entry: ScheduleEntry = { 
+      id,
+      userId: insertEntry.userId ?? null,
+      date: insertEntry.date,
+      startAddress: insertEntry.startAddress,
+      endAddress: insertEntry.endAddress,
+      notes: insertEntry.notes ?? null,
+      calculatedDistance: insertEntry.calculatedDistance ?? null,
+      calculatedAmount: insertEntry.calculatedAmount ?? null,
+      isHotelStay: insertEntry.isHotelStay ?? null,
+      processingStatus: insertEntry.processingStatus ?? null,
+      errorMessage: insertEntry.errorMessage ?? null,
+      originalData: insertEntry.originalData
+    };
     this.scheduleEntries.set(id, entry);
     return entry;
   }
@@ -487,7 +533,17 @@ class MemStorage implements IStorage {
       return updated;
     } else {
       const id = randomUUID();
-      const settings: AppSettings = { ...insertSettings, id };
+      const settings: AppSettings = { 
+        id,
+        userId: insertSettings.userId ?? null,
+        googleApiKey: insertSettings.googleApiKey ?? null,
+        mileageRate: insertSettings.mileageRate ?? null,
+        autoDetectionEnabled: insertSettings.autoDetectionEnabled ?? null,
+        detectionSensitivity: insertSettings.detectionSensitivity ?? null,
+        darkMode: insertSettings.darkMode ?? null,
+        pushNotifications: insertSettings.pushNotifications ?? null,
+        autoBackup: insertSettings.autoBackup ?? null
+      };
       this.appSettings.set(id, settings);
       return settings;
     }
@@ -500,7 +556,14 @@ class MemStorage implements IStorage {
 
   async createErrorLog(insertLog: InsertErrorLog): Promise<ErrorLog> {
     const id = randomUUID();
-    const log: ErrorLog = { ...insertLog, id };
+    const log: ErrorLog = { 
+      id,
+      userId: insertLog.userId ?? null,
+      errorType: insertLog.errorType,
+      errorMessage: insertLog.errorMessage,
+      context: insertLog.context,
+      timestamp: insertLog.timestamp
+    };
     this.errorLogs.set(id, log);
     return log;
   }
