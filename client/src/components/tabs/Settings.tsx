@@ -18,6 +18,8 @@ export function SettingsTab() {
   const [showApiKey, setShowApiKey] = useState(false);
   const [apiKey, setApiKey] = useState("");
   const [mileageRate, setMileageRate] = useState("0.655");
+  const [defaultStartAddress, setDefaultStartAddress] = useState("");
+  const [defaultEndAddress, setDefaultEndAddress] = useState("");
   const [shareCode, setShareCode] = useState("");
   const [importShareCode, setImportShareCode] = useState("");
   
@@ -34,6 +36,8 @@ export function SettingsTab() {
     if (settings) {
       setApiKey(settings.googleApiKey || "");
       setMileageRate(settings.mileageRate?.toString() || "0.655");
+      setDefaultStartAddress(settings.defaultStartAddress || "");
+      setDefaultEndAddress(settings.defaultEndAddress || "");
     }
   }, [settings]);
 
@@ -107,6 +111,8 @@ export function SettingsTab() {
       autoDetectionEnabled: true,
       pushNotifications: true,
       autoBackup: true,
+      defaultStartAddress,
+      defaultEndAddress,
     });
   };
 
@@ -167,6 +173,36 @@ export function SettingsTab() {
             
             <Progress value={0} className="w-full" />
             
+            <div>
+              <Label className="text-sm font-medium mb-2 block">Default Start Address</Label>
+              <Input
+                type="text"
+                placeholder="Your home or office address"
+                value={defaultStartAddress}
+                onChange={(e) => setDefaultStartAddress(e.target.value)}
+                className="w-full"
+                data-testid="default-start-address-input"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Default starting point for daily routes
+              </p>
+            </div>
+            
+            <div>
+              <Label className="text-sm font-medium mb-2 block">Default End Address</Label>
+              <Input
+                type="text"
+                placeholder="Leave blank to use start address"
+                value={defaultEndAddress}
+                onChange={(e) => setDefaultEndAddress(e.target.value)}
+                className="w-full"
+                data-testid="default-end-address-input"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Default ending point for daily routes (optional)
+              </p>
+            </div>
+
             <Button 
               onClick={handleSaveSettings}
               disabled={saveSettingsMutation.isPending}
