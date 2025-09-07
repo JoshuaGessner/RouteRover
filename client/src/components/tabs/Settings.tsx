@@ -196,7 +196,7 @@ export function SettingsTab() {
     saveSettingsMutation.mutate({
       googleApiKey: apiKey,
       openaiApiKey: openaiApiKey,
-      mileageRate: 0.655, // Keep fallback rate for backend compatibility
+      mileageRate: parseFloat(mileageRate),
       darkMode: theme === 'dark',
       autoDetectionEnabled: true,
       pushNotifications: true,
@@ -472,6 +472,21 @@ export function SettingsTab() {
               <Switch defaultChecked data-testid="auto-backup-toggle" />
             </div>
             
+            <div>
+              <Label className="text-sm font-medium mb-2 block">Default Mileage Rate</Label>
+              <div className="flex items-center gap-2">
+                <span className="text-sm">$</span>
+                <Input
+                  type="number"
+                  step="0.001"
+                  value={mileageRate}
+                  onChange={(e) => setMileageRate(e.target.value)}
+                  className="flex-1"
+                  data-testid="mileage-rate-input"
+                />
+                <span className="text-sm text-muted-foreground">per mile</span>
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -480,14 +495,8 @@ export function SettingsTab() {
       <Card data-testid="yearly-rates">
         <CardContent className="pt-6">
           <h3 className="text-lg font-semibold mb-4">Yearly Mileage Rates</h3>
-          <div className="mb-4 p-3 bg-accent/10 border border-accent/20 rounded-lg">
-            <p className="text-sm text-accent font-medium mb-1">⚠️ Important for Accurate Calculations</p>
-            <p className="text-xs text-muted-foreground">
-              Set specific mileage rates for each year to ensure accurate tax deductions. Without yearly rates, the system falls back to a default rate of $0.655 per mile, which may not reflect current IRS standards.
-            </p>
-          </div>
           <p className="text-sm text-muted-foreground mb-4">
-            Add the IRS standard mileage rates for each tax year. The system automatically uses the correct rate based on your trip dates.
+            Set specific mileage rates for different years. The system uses these rates when calculating deductions for each year.
           </p>
           
           <div className="space-y-4">
