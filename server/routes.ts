@@ -9,6 +9,7 @@ import XLSX from "xlsx";
 import { parse } from "csv-parse/sync";
 import fs from "fs";
 import path from "path";
+import archiver from "archiver";
 
 // Extend Request interface for multer
 interface MulterRequest extends Request {

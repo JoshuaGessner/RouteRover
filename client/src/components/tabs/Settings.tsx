@@ -106,6 +106,28 @@ export function SettingsTab() {
     },
   });
 
+  const downloadReceiptsMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch("/api/receipts/download-all");
+      if (!response.ok) {
+        if (response.status === 404) {
+          throw new Error("No receipts found");
+        }
+        throw new Error("Download failed");
+      }
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = url;
+      a.download = `receipts-${new Date().toISOString().slice(0, 10)}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+    },
+  });
+
   const generateShareCodeMutation = useMutation({
     mutationFn: async () => {
       const response = await fetch('/api/share/generate', {
@@ -474,6 +496,20 @@ export function SettingsTab() {
               <div className="text-left">
                 <div>Export Data</div>
                 <p className="text-xs text-muted-foreground">Download all your data as JSON</p>
+              </div>
+              <Download className="w-4 h-4" />
+            </Button>
+            
+            <Button
+              variant="outline"
+              className="w-full justify-between"
+              onClick={() => downloadReceiptsMutation.mutate()}
+              disabled={downloadReceiptsMutation.isPending}
+              data-testid="download-receipts"
+            >
+              <div className="text-left">
+                <div>Download Receipt Images</div>
+                <p className="text-xs text-muted-foreground">Download all receipt images as ZIP</p>
               </div>
               <Download className="w-4 h-4" />
             </Button>
