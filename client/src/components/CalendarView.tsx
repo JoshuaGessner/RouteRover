@@ -157,12 +157,14 @@ export function CalendarView() {
   return (
     <div className="p-4 space-y-6" data-testid="calendar-view">
       <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'calendar' | 'import')}>
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="calendar">Calendar & Analytics</TabsTrigger>
-          <TabsTrigger value="import">Import Schedule</TabsTrigger>
-        </TabsList>
+        <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 pb-4">
+          <TabsList className="grid w-full grid-cols-2 max-w-full">
+            <TabsTrigger value="calendar" className="text-sm px-3">Calendar & Analytics</TabsTrigger>
+            <TabsTrigger value="import" className="text-sm px-3">Import Schedule</TabsTrigger>
+          </TabsList>
+        </div>
         
-        <TabsContent value="calendar" className="space-y-6">
+        <TabsContent value="calendar" className="space-y-6 mt-0">
           {/* Analytics Summary Cards */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card className="bg-gradient-to-r from-blue-50 to-cyan-50 border-blue-200">
@@ -512,7 +514,7 @@ export function CalendarView() {
       )}
         </TabsContent>
         
-        <TabsContent value="import" className="space-y-6">
+        <TabsContent value="import" className="space-y-6 mt-0">
           <Card>
             <CardContent className="p-6">
               <div className="space-y-4">
