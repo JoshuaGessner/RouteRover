@@ -57,6 +57,10 @@ export function CalendarView() {
     queryKey: ["/api/schedule"],
   });
 
+  const { data: trips = [] } = useQuery<any[]>({
+    queryKey: ["/api/trips"],
+  });
+
   const { data: analytics = {} } = useQuery<{
     totalDistance?: number;
     totalAmount?: number; 
@@ -74,7 +78,7 @@ export function CalendarView() {
   });
 
   // Convert schedule entries to calendar events
-  const events: CalendarEvent[] = scheduleData.map(entry => ({
+  const scheduleEvents: CalendarEvent[] = scheduleData.map(entry => ({
     id: entry.id,
     title: `${entry.calculatedDistance?.toFixed(1) || 0} mi - $${entry.calculatedAmount?.toFixed(2) || '0.00'}`,
     start: new Date(entry.date),
@@ -82,15 +86,38 @@ export function CalendarView() {
     resource: entry
   }));
 
+  // Convert trip data to calendar events if no schedule data exists
+  const tripEvents: CalendarEvent[] = scheduleData.length === 0 ? trips.map(trip => ({
+    id: `trip-${trip.id}`,
+    title: `${trip.purpose} Trip - ${trip.distance?.toFixed(1) || 0} mi`,
+    start: new Date(trip.startTime),
+    end: new Date(trip.endTime || trip.startTime),
+    resource: {
+      id: trip.id,
+      date: trip.startTime,
+      startAddress: trip.startLocation || 'Unknown',
+      endAddress: trip.endLocation || 'Unknown', 
+      notes: `${trip.purpose} trip`,
+      calculatedDistance: trip.distance,
+      calculatedAmount: (trip.distance || 0) * 0.655,
+      isHotelStay: false,
+      processingStatus: 'completed'
+    }
+  })) : [];
+
+  // Combine events
+  const events = [...scheduleEvents, ...tripEvents];
+
   const handleSelectEvent = (event: CalendarEvent) => {
     setSelectedEvent(event);
   };
 
   const eventStyleGetter = (event: CalendarEvent) => {
     const isHotelStay = event.resource.isHotelStay;
+    const isTripEvent = event.id.startsWith('trip-');
     return {
       style: {
-        backgroundColor: isHotelStay ? '#f59e0b' : '#3b82f6',
+        backgroundColor: isHotelStay ? '#f59e0b' : isTripEvent ? '#10b981' : '#3b82f6',
         borderRadius: '4px',
         opacity: 0.8,
         color: 'white',
@@ -362,6 +389,12 @@ export function CalendarView() {
               <div className="w-3 h-3 rounded-full" style={{backgroundColor: COLORS.hotel}}></div>
               <span>Hotel Stays</span>
             </div>
+            {scheduleData.length === 0 && trips.length > 0 && (
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                <span>Tracked Routes</span>
+              </div>
+            )}
           </div>
           <Button 
             variant="outline" 

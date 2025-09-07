@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { MapPin, Clock, DollarSign, Download } from "lucide-react";
+import { MapPin, Clock, DollarSign } from "lucide-react";
 import type { Trip, Expense } from "@shared/schema";
 
 export function DashboardTab() {
@@ -30,51 +30,6 @@ export function DashboardTab() {
   const totalMiles = todayTrips.reduce((sum, trip) => sum + (trip.distance || 0), 0);
   const totalExpenses = todayExpenses.reduce((sum, expense) => sum + expense.amount, 0);
 
-  const handleExportData = async () => {
-    try {
-      console.log('Starting routes export...');
-      const response = await fetch('/api/export/routes', {
-        method: 'GET',
-        credentials: 'include',
-        headers: {
-          'Accept': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-        }
-      });
-      
-      console.log('Export response status:', response.status);
-      
-      if (!response.ok) {
-        throw new Error(`Export failed with status ${response.status}`);
-      }
-      
-      const blob = await response.blob();
-      console.log('Blob created, size:', blob.size, 'type:', blob.type);
-      
-      if (blob.size === 0) {
-        throw new Error('Received empty file');
-      }
-      
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.style.display = 'none';
-      a.href = url;
-      a.download = `route-rover-routes-report-${new Date().toISOString().slice(0, 10)}.xlsx`;
-      
-      document.body.appendChild(a);
-      a.click();
-      
-      // Clean up after a short delay
-      setTimeout(() => {
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
-      }, 100);
-      
-      console.log('Export completed successfully');
-    } catch (error) {
-      console.error('Export failed:', error);
-      alert(`Failed to export routes data: ${error instanceof Error ? error.message : 'Please try again.'}`);
-    }
-  };
 
   return (
     <div className="p-4 space-y-6" data-testid="dashboard-tab">
@@ -182,15 +137,6 @@ export function DashboardTab() {
           <div className="p-4 border-t border-border space-y-2">
             <Button variant="ghost" className="w-full" data-testid="view-all-routes">
               View All Routes
-            </Button>
-            <Button 
-              variant="outline" 
-              className="w-full" 
-              onClick={handleExportData}
-              data-testid="export-routes"
-            >
-              <Download className="w-4 h-4 mr-2" />
-              Export IRS Report
             </Button>
           </div>
         </CardContent>
