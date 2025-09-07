@@ -98,14 +98,9 @@ async function processReceiptOCR(imagePath: string, userId?: string) {
   }
 
   // Fallback to enhanced Tesseract OCR
-  const worker = await Tesseract.createWorker('eng', Tesseract.OEM.LSTM_ONLY, {
-    preserve_interword_spaces: '1',
-  });
+  const worker = await Tesseract.createWorker('eng');
   
-  const { data: { text } } = await worker.recognize(imagePath, {
-    tessedit_char_whitelist: '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz .,!@#$%^&*()-+=[]{}|;:\'",.<>?/~`',
-    tessedit_pageseg_mode: Tesseract.PSM.AUTO,
-  });
+  const { data: { text } } = await worker.recognize(imagePath);
   await worker.terminate();
   
   // Extract structured data from OCR text
@@ -696,7 +691,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const locations = dayEntries.map((row: any) => ({
             address: row[headerMapping.startAddress],
             notes: row[headerMapping.notes] || '',
-            originalData: row
+            originalData: JSON.parse(JSON.stringify(row))
           }));
 
           // Check for hotel stays

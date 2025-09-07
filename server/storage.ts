@@ -576,7 +576,7 @@ class MemStorage implements IStorage {
     const id = randomUUID();
     const entry: ScheduleEntry = { 
       id,
-      userId: insertEntry.userId ?? null,
+      userId: insertEntry.userId || null,
       date: insertEntry.date,
       startAddress: insertEntry.startAddress,
       endAddress: insertEntry.endAddress,
@@ -647,7 +647,7 @@ class MemStorage implements IStorage {
     const id = randomUUID();
     const log: ErrorLog = { 
       id,
-      userId: insertLog.userId ?? null,
+      userId: insertLog.userId || null,
       errorType: insertLog.errorType,
       errorMessage: insertLog.errorMessage,
       context: insertLog.context,
@@ -667,7 +667,7 @@ class MemStorage implements IStorage {
     const id = randomUUID();
     const file: ProcessedFile = {
       id,
-      userId: insertFile.userId,
+      userId: insertFile.userId || null,
       fileHash: insertFile.fileHash,
       fileName: insertFile.fileName,
       processedAt: insertFile.processedAt,
