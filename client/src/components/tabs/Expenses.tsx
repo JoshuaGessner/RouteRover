@@ -249,11 +249,11 @@ export function ExpensesTab() {
             <Button 
               className="w-full"
               onClick={handleSaveExpense}
-              disabled={!amount || createExpenseMutation.isPending}
+              disabled={!amount || !category || createExpenseMutation.isPending}
               data-testid="save-expense"
             >
               <Save className="w-4 h-4 mr-2" />
-              Save Expense
+              {createExpenseMutation.isPending ? 'Saving...' : 'Save Expense'}
             </Button>
           </div>
         </CardContent>
