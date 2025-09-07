@@ -253,9 +253,22 @@ export function CalendarView() {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              <div className="text-sm text-muted-foreground text-center py-8">
-                No travel data available yet. Import your schedule to see trends.
-              </div>
+              {analytics?.monthlyTrends?.slice(0, 6).map((month, idx) => (
+                <div key={month.month} className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-2 h-2 rounded-full bg-blue-600"></div>
+                    <span className="text-sm font-medium">{moment(month.month).format('MMM YYYY')}</span>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-sm font-semibold">{month.distance.toFixed(0)} mi</div>
+                    <div className="text-xs text-muted-foreground">${month.amount.toFixed(0)}</div>
+                  </div>
+                </div>
+              )) || (
+                <div className="text-sm text-muted-foreground text-center py-8">
+                  No travel data available yet. Import your schedule to see trends.
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -276,14 +289,13 @@ export function CalendarView() {
               <div className="flex justify-between items-center">
                 <span className="text-sm text-muted-foreground">Total API Calls</span>
                 <Badge variant="secondary" className="text-xs">
-                  0 calls
+                  {analytics?.apiCallsMade || 0} calls
                 </Badge>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-sm text-muted-foreground">Avg Trip Length</span>
                 <span className="font-semibold">
-                  {analytics?.tripDays && analytics.tripDays > 0 && analytics.totalDistance ? 
-                    (analytics.totalDistance / analytics.tripDays).toFixed(1) : '0.0'} mi
+                  {analytics?.tripDays > 0 ? (analytics.totalDistance / analytics.tripDays).toFixed(1) : '0.0'} mi
                 </span>
               </div>
               <div className="pt-2 border-t">
@@ -387,9 +399,9 @@ export function CalendarView() {
                 }, 100);
                 
                 console.log('Export completed successfully');
-              } catch (error: any) {
+              } catch (error) {
                 console.error('Export failed:', error);
-                alert(`Failed to export schedule data: ${error?.message || 'Unknown error'}`);
+                alert(`Failed to export schedule data: ${error.message}`);
               }
             }}
             data-testid="export-schedule"
@@ -405,7 +417,7 @@ export function CalendarView() {
       <Card className="border-0 shadow-lg bg-white w-full overflow-hidden">
         <CardContent className="p-0">
           <div className="h-[600px] w-full rounded-lg overflow-hidden">
-            <style>{`
+            <style jsx>{`
               .rbc-calendar {
                 background: white;
                 font-family: inherit;
