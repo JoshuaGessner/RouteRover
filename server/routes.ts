@@ -17,8 +17,29 @@ interface MulterRequest extends Request {
 
 const upload = multer({ 
   dest: "uploads/",
-  limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+  fileFilter: (req, file, cb) => {
+    // Only allow image files
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed'));
+    }
+  }
 });
+
+// Helper function to sanitize file paths
+function sanitizeFilePath(filePath: string, baseDir: string = 'uploads/'): string {
+  const resolvedPath = path.resolve(baseDir, path.basename(filePath));
+  const basePath = path.resolve(baseDir);
+  
+  // Ensure the resolved path is within the base directory
+  if (!resolvedPath.startsWith(basePath)) {
+    throw new Error('Invalid file path');
+  }
+  
+  return resolvedPath;
+}
 
 // Google Directions API integration
 async function calculateRoute(startAddress: string, endAddress: string, apiKey: string, userId?: string) {
@@ -313,7 +334,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "No image file provided" });
       }
 
-      const { ocrText, extractedData } = await processReceiptOCR(req.file.path);
+      // Sanitize file path to prevent path traversal
+      const sanitizedPath = sanitizeFilePath(req.file.path);
+      const { ocrText, extractedData } = await processReceiptOCR(sanitizedPath);
       const userId = getCurrentUserId(req);
       
       const receiptData = insertReceiptSchema.parse({
@@ -921,11 +944,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Delete the image file if it exists
       if (receipt.imageUrl) {
-        const imagePath = receipt.imageUrl.replace('/uploads/', 'uploads/');
         try {
-          fs.unlinkSync(imagePath);
+          // Extract filename and sanitize path
+          const filename = path.basename(receipt.imageUrl);
+          const sanitizedPath = sanitizeFilePath(filename);
+          fs.unlinkSync(sanitizedPath);
         } catch (error) {
-          console.warn('Could not delete image file:', imagePath);
+          console.warn('Could not delete image file:', error);
         }
       }
 
