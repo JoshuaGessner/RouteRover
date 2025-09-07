@@ -70,9 +70,9 @@ export function DashboardTab() {
       }, 100);
       
       console.log('Export completed successfully');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Export failed:', error);
-      alert(`Failed to export routes data: ${error.message}`);
+      alert(`Failed to export routes data: ${error?.message || 'Unknown error'}`);
     }
   };
 
