@@ -1,7 +1,7 @@
 import type { Express, Request } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { setupAuth, isAuthenticated } from "./auth";
+import { setupAuth, isAuthenticated, getCurrentUser } from "./simpleAuth.js";
 import { insertTripSchema, insertExpenseSchema, insertReceiptSchema, insertScheduleEntrySchema, insertAppSettingsSchema, insertErrorLogSchema } from "@shared/schema";
 import multer from "multer";
 import Tesseract from "tesseract.js";
