@@ -136,23 +136,8 @@ export function ScheduleTab() {
                 <p className="text-xs text-muted-foreground mt-1">or click to browse</p>
               </div>
             </div>
-            
-            <div className="grid grid-cols-3 gap-2">
-              <div className="text-center p-3 border border-border rounded-lg">
-                <FileText className="w-6 h-6 text-blue-600 mx-auto mb-1" />
-                <div className="text-xs font-medium">CSV</div>
-              </div>
-              <div className="text-center p-3 border border-border rounded-lg">
-                <Table className="w-6 h-6 text-green-600 mx-auto mb-1" />
-                <div className="text-xs font-medium">Excel</div>
-              </div>
-              <div className="text-center p-3 border border-border rounded-lg">
-                <FileText className="w-6 h-6 text-blue-600 mx-auto mb-1" />
-                <div className="text-xs font-medium">TXT</div>
-              </div>
-            </div>
 
-            {/* Help Button - More prominent placement */}
+            {/* Help Button - Right after file upload box */}
             <div className="flex justify-center">
               <Dialog>
                 <DialogTrigger asChild>
@@ -252,6 +237,21 @@ export function ScheduleTab() {
                   </div>
                 </DialogContent>
               </Dialog>
+            </div>
+            
+            <div className="grid grid-cols-3 gap-2">
+              <div className="text-center p-3 border border-border rounded-lg">
+                <FileText className="w-6 h-6 text-blue-600 mx-auto mb-1" />
+                <div className="text-xs font-medium">CSV</div>
+              </div>
+              <div className="text-center p-3 border border-border rounded-lg">
+                <Table className="w-6 h-6 text-green-600 mx-auto mb-1" />
+                <div className="text-xs font-medium">Excel</div>
+              </div>
+              <div className="text-center p-3 border border-border rounded-lg">
+                <FileText className="w-6 h-6 text-blue-600 mx-auto mb-1" />
+                <div className="text-xs font-medium">TXT</div>
+              </div>
             </div>
 
             {file && (
