@@ -311,9 +311,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const validatedData = insertExpenseSchema.parse(expenseData);
       const expense = await storage.createExpense(validatedData);
       res.json(expense);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Expense validation error:', error);
-      res.status(400).json({ message: "Invalid expense data", error: error.message });
+      res.status(400).json({ message: "Invalid expense data", error: error?.message || 'Unknown error' });
     }
   });
 
@@ -396,7 +396,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.error("Failed to cleanup file:", cleanup);
         }
       }
-      res.status(500).json({ message: `Failed to parse schedule file: ${error.message}` });
+      res.status(500).json({ message: `Failed to parse schedule file: ${error instanceof Error ? error.message : 'Unknown error'}` });
     }
   });
 
@@ -451,7 +451,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       let newDataCount = 0;
       const filteredDateRanges = new Map();
-      for (const [dateStr, entries] of dateRanges) {
+      for (const [dateStr, entries] of Array.from(dateRanges)) {
         if (!existingDates.has(dateStr)) {
           filteredDateRanges.set(dateStr, entries);
           newDataCount += entries.length;
@@ -467,7 +467,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Use filtered data to build daily routes, only processing new dates
       const entriesByDate = new Map();
-      for (const [dateStr, entries] of filteredDateRanges) {
+      for (const [dateStr, entries] of Array.from(filteredDateRanges)) {
         for (const row of entries) {
           const rawDate = row[headerMapping.date];
           // Handle Excel date format (numeric days since 1900-01-01) 
@@ -533,7 +533,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
             
             // Calculate route back to end address (if different from last location)
-            if (currentLocation !== dayEndAddress && !hasHotelStay) {
+            if (currentLocation !== dayEndAddress && !hasHotelStay && dayEndAddress) {
               const routeInfo = await calculateRoute(currentLocation, dayEndAddress, apiKey, userId);
               totalDayDistance += routeInfo.distance;
             }
@@ -542,7 +542,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const calculatedAmount = totalDayDistance * (mileageRate || 0.655);
           
           // Check if entry for this date already exists
-          const existingEntry = await storage.getScheduleEntryByDate(userId, date);
+          const existingEntries = await storage.getScheduleEntries(userId);
+          const existingEntry = existingEntries.find(entry => 
+            new Date(entry.date).toISOString().split('T')[0] === date.toISOString().split('T')[0]
+          );
           
           let entry;
           if (existingEntry) {
@@ -618,7 +621,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Save all accumulated entries to database
       for (const entry of results) {
-        await storage.createScheduleEntry(entry);
+        if (entry) {
+          await storage.createScheduleEntry(entry);
+        }
       }
 
       return res.json({
@@ -628,9 +633,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         apiCallsMade: Array.from(entriesByDate.values()).reduce((sum, dayEntries) => sum + dayEntries.length, 0),
         skippedDuplicates: data.length - newDataCount
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Schedule processing error:", error);
-      res.status(500).json({ message: `Failed to process schedule: ${error.message}` });
+      res.status(500).json({ message: `Failed to process schedule: ${error instanceof Error ? error.message : 'Unknown error'}` });
     }
   });
 
