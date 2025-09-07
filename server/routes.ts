@@ -423,7 +423,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json(results);
     } catch (error) {
-      res.status(500).json({ message: "Failed to process schedule" });
+      console.error("Schedule processing error:", error);
+      res.status(500).json({ message: `Failed to process schedule: ${error.message}` });
     }
   });
 
