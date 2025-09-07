@@ -378,7 +378,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Group data by date to build daily routes
       const entriesByDate = new Map();
       for (const row of data) {
-        const date = new Date(row[headerMapping.date]).toDateString();
+        const rawDate = row[headerMapping.date];
+        // Handle Excel date format (numeric days since 1900-01-01) 
+        let parsedDate: Date;
+        if (typeof rawDate === 'number') {
+          // Excel dates: add days to Excel epoch (1900-01-01, but Excel incorrectly treats 1900 as leap year)
+          parsedDate = new Date(1900, 0, rawDate - 1); // -1 because Excel starts from day 1, not 0
+        } else {
+          parsedDate = new Date(rawDate);
+        }
+        const date = parsedDate.toDateString();
         if (!entriesByDate.has(date)) {
           entriesByDate.set(date, []);
         }
@@ -389,7 +398,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let previousHotelAddress = null;
       
       // Process each day to build daily routes
-      for (const [dateString, dayEntries] of entriesByDate) {
+      for (const [dateString, dayEntries] of Array.from(entriesByDate)) {
         try {
           const date = new Date(dateString);
           let dayStartAddress = previousHotelAddress || defaultStartAddress;
@@ -399,7 +408,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           let hotelAddress = null;
 
           // Build the route for this day: start -> locations -> end
-          const locations = dayEntries.map(row => ({
+          const locations = dayEntries.map((row: any) => ({
             address: row[headerMapping.startAddress],
             notes: row[headerMapping.notes] || '',
             originalData: row
@@ -421,11 +430,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             
             // Calculate route to each location
             for (const location of locations) {
-              if (currentLocation !== location.address) {
+              if (currentLocation !== location.address && location.address) {
                 const routeInfo = await calculateRoute(currentLocation, location.address, apiKey);
                 totalDayDistance += routeInfo.distance;
               }
-              currentLocation = location.address;
+              currentLocation = location.address || currentLocation;
             }
             
             // Calculate route back to end address (if different from last location)
@@ -443,7 +452,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             date,
             startAddress: dayStartAddress,
             endAddress: dayEndAddress,
-            notes: `Daily route: ${locations.map(l => l.address).join(' → ')} ${hasHotelStay ? '(Hotel stay)' : ''}`,
+            notes: `Daily route: ${locations.map((l: any) => l.address).join(' → ')} ${hasHotelStay ? '(Hotel stay)' : ''}`,
             calculatedDistance: totalDayDistance,
             calculatedAmount,
             isHotelStay: hasHotelStay,
