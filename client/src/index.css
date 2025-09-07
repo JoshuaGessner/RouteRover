@@ -116,6 +116,17 @@
   transition: width 0.3s ease;
 }
 
+/* Remove number input spin buttons / scroll bars */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
 /* Ensure proper mobile touch targets */
 @media (max-width: 768px) {
   button, [role="button"], input, select, textarea {
