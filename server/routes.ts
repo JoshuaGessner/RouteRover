@@ -985,7 +985,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Export data route
-  app.get("/api/export", async (req, res) => {
+  app.get("/api/export", isAuthenticated, async (req, res) => {
     try {
       const userId = getCurrentUserId(req);
       const trips = await storage.getTrips(userId);

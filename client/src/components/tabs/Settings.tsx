@@ -26,6 +26,7 @@ export function SettingsTab() {
   const [importShareCode, setImportShareCode] = useState("");
   const [cameraPermission, setCameraPermission] = useState<PermissionState | null>(null);
   const [locationPermission, setLocationPermission] = useState<PermissionState | null>(null);
+  const [showErrorLog, setShowErrorLog] = useState(false);
   
   const { theme, toggleTheme } = useTheme();
   const { user } = useAuth();
@@ -480,6 +481,7 @@ export function SettingsTab() {
             <Button
               variant="outline"
               className="w-full justify-between"
+              onClick={() => setShowErrorLog(!showErrorLog)}
               data-testid="view-error-log"
             >
               <div className="text-left">
@@ -497,6 +499,12 @@ export function SettingsTab() {
             <Button
               variant="destructive"
               className="w-full justify-between"
+              onClick={() => {
+                if (confirm('This will permanently delete all your data. Are you sure?')) {
+                  // For now, just show an alert - implementing full clear would need backend routes
+                  alert('Clear data functionality would go here - contact support for data deletion');
+                }
+              }}
               data-testid="clear-all-data"
             >
               <div className="text-left">
@@ -505,6 +513,43 @@ export function SettingsTab() {
               </div>
               <Trash2 className="w-4 h-4" />
             </Button>
+            
+            {/* Error Log Display */}
+            {showErrorLog && (
+              <Card className="border-red-200 bg-red-50">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="font-medium text-red-900">Error Log</h4>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowErrorLog(false)}
+                      className="text-red-600 hover:text-red-800"
+                    >
+                      ✕
+                    </Button>
+                  </div>
+                  
+                  {Array.isArray(errorLogs) && errorLogs.length > 0 ? (
+                    <div className="space-y-2 max-h-40 overflow-y-auto">
+                      {errorLogs.map((error: any) => (
+                        <div key={error.id} className="p-2 bg-white rounded border text-xs">
+                          <div className="font-medium text-red-800">
+                            {new Date(error.timestamp).toLocaleString()}
+                          </div>
+                          <div className="text-red-600 mt-1">{error.message}</div>
+                          {error.details && (
+                            <div className="text-gray-600 mt-1 font-mono text-xs">{error.details}</div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-red-700">No errors found</p>
+                  )}
+                </CardContent>
+              </Card>
+            )}
           </div>
         </CardContent>
       </Card>
