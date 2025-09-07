@@ -756,6 +756,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Export schedule data for IRS reporting
+  app.get("/api/export/schedule", async (req, res) => {
+    try {
+      const userId = getCurrentUserId(req);
+      const scheduleEntries = await storage.getScheduleEntries(userId);
+      
+      // Format data for IRS compliance
+      const irsData = scheduleEntries.map((entry: any) => {
+        return {
+          'Date': new Date(entry.date).toLocaleDateString('en-US'),
+          'Start Location': entry.startAddress || '',
+          'End Location': entry.endAddress || '',
+          'Miles': (entry.calculatedDistance || 0).toFixed(2),
+          'Mileage Rate': '$0.655',
+          'Mileage Deduction': `$${((entry.calculatedDistance || 0) * 0.655).toFixed(2)}`,
+          'Hotel Stay': entry.isHotelStay ? 'Yes' : 'No',
+          'Processing Status': entry.processingStatus || 'Pending',
+          'Notes': entry.notes || '',
+          'Error Message': entry.errorMessage || ''
+        };
+      });
+
+      // Create workbook and worksheet
+      const workbook = XLSX.utils.book_new();
+      const worksheet = XLSX.utils.json_to_sheet(irsData);
+      
+      // Set column widths for better readability
+      const colWidths = [
+        { wch: 12 }, // Date
+        { wch: 25 }, // Start Location
+        { wch: 25 }, // End Location
+        { wch: 12 }, // Miles
+        { wch: 12 }, // Mileage Rate
+        { wch: 15 }, // Mileage Deduction
+        { wch: 12 }, // Hotel Stay
+        { wch: 18 }, // Processing Status
+        { wch: 30 }, // Notes
+        { wch: 20 }  // Error Message
+      ];
+      worksheet['!cols'] = colWidths;
+
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Schedule Report');
+      
+      // Generate Excel file
+      const excelBuffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+      
+      // Set response headers for file download
+      const filename = `route-rover-schedule-report-${new Date().toISOString().slice(0, 10)}.xlsx`;
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      
+      res.send(excelBuffer);
+    } catch (error) {
+      console.error('Schedule export error:', error);
+      res.status(500).json({ message: 'Failed to export schedule data' });
+    }
+  });
+
   // Export routes data for IRS reporting
   app.get("/api/export/routes", async (req, res) => {
     try {

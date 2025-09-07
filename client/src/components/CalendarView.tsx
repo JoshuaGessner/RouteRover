@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CalendarIcon, TrendingUp, MapPin, DollarSign, Upload, FileUp, BarChart3, PieChart, Activity } from "lucide-react";
+import { CalendarIcon, TrendingUp, MapPin, DollarSign, Upload, FileUp, BarChart3, PieChart, Activity, Download } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 
@@ -346,6 +346,15 @@ export function CalendarView() {
             <div className="w-3 h-3 rounded-full" style={{backgroundColor: COLORS.hotel}}></div>
             <span>Hotel Stays</span>
           </div>
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => window.open('/api/export/schedule', '_blank')}
+            data-testid="export-schedule"
+          >
+            <Download className="w-4 h-4 mr-2" />
+            Export IRS Report
+          </Button>
         </div>
       </div>
 

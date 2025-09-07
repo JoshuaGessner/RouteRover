@@ -71,6 +71,7 @@ export function ExpensesTab() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/expenses"] });
       setAmount("");
+      setCategory("");
       setMerchant("");
       setNotes("");
     },
