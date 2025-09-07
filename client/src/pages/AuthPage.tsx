@@ -59,8 +59,9 @@ export default function AuthPage() {
       }
       return response.json();
     },
-    onSuccess: (user) => {
-      queryClient.setQueryData(['/api/user'], user);
+    onSuccess: (response) => {
+      queryClient.setQueryData(['/api/user'], response.user);
+      queryClient.invalidateQueries({ queryKey: ['/api/user'] });
       window.location.href = '/';
     },
     onError: (error: Error) => {
@@ -85,8 +86,9 @@ export default function AuthPage() {
       }
       return response.json();
     },
-    onSuccess: (user) => {
-      queryClient.setQueryData(['/api/user'], user);
+    onSuccess: (response) => {
+      queryClient.setQueryData(['/api/user'], response.user);
+      queryClient.invalidateQueries({ queryKey: ['/api/user'] });
       window.location.href = '/';
     },
     onError: (error: Error) => {
