@@ -26,7 +26,10 @@ import {
   processedFiles,
   type InsertApiUsage,
   type ApiUsage,
-  apiUsage
+  apiUsage,
+  yearlyRates,
+  type YearlyRate,
+  type InsertYearlyRate
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and } from "drizzle-orm";
@@ -85,6 +88,13 @@ export interface IStorage {
   getApiUsage(userId: string, month?: string): Promise<ApiUsage[]>;
   trackApiCall(usage: InsertApiUsage): Promise<ApiUsage>;
   getMonthlyApiStats(userId: string, month: string): Promise<{totalCalls: number, totalCost: number}>;
+  
+  // Yearly Rates
+  getYearlyRates(userId: string): Promise<YearlyRate[]>;
+  getYearlyRate(userId: string, year: number): Promise<YearlyRate | undefined>;
+  createYearlyRate(rate: InsertYearlyRate): Promise<YearlyRate>;
+  updateYearlyRate(id: string, rate: Partial<YearlyRate>): Promise<YearlyRate | undefined>;
+  deleteYearlyRate(id: string): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -349,6 +359,38 @@ export class DatabaseStorage implements IStorage {
     const totalCalls = usage.reduce((sum, u) => sum + (u.callCount || 0), 0);
     const totalCost = usage.reduce((sum, u) => sum + (u.totalCost || 0), 0);
     return { totalCalls, totalCost };
+  }
+
+  // Yearly Rates
+  async getYearlyRates(userId: string): Promise<YearlyRate[]> {
+    return await db.select().from(yearlyRates).where(eq(yearlyRates.userId, userId));
+  }
+
+  async getYearlyRate(userId: string, year: number): Promise<YearlyRate | undefined> {
+    const [rate] = await db
+      .select()
+      .from(yearlyRates)
+      .where(and(eq(yearlyRates.userId, userId), eq(yearlyRates.year, year)));
+    return rate;
+  }
+
+  async createYearlyRate(rate: InsertYearlyRate): Promise<YearlyRate> {
+    const [yearlyRate] = await db.insert(yearlyRates).values(rate).returning();
+    return yearlyRate;
+  }
+
+  async updateYearlyRate(id: string, updates: Partial<YearlyRate>): Promise<YearlyRate | undefined> {
+    const [yearlyRate] = await db
+      .update(yearlyRates)
+      .set(updates)
+      .where(eq(yearlyRates.id, id))
+      .returning();
+    return yearlyRate;
+  }
+
+  async deleteYearlyRate(id: string): Promise<boolean> {
+    const result = await db.delete(yearlyRates).where(eq(yearlyRates.id, id));
+    return (result.rowCount || 0) > 0;
   }
 }
 
@@ -721,6 +763,50 @@ class MemStorage implements IStorage {
     const totalCalls = usage.reduce((sum, u) => sum + (u.callCount || 0), 0);
     const totalCost = usage.reduce((sum, u) => sum + (u.totalCost || 0), 0);
     return { totalCalls, totalCost };
+  }
+
+  // Yearly Rates (in-memory implementation)
+  private yearlyRates: Map<string, YearlyRate> = new Map();
+
+  async getYearlyRates(userId: string): Promise<YearlyRate[]> {
+    return Array.from(this.yearlyRates.values()).filter(rate => rate.userId === userId);
+  }
+
+  async getYearlyRate(userId: string, year: number): Promise<YearlyRate | undefined> {
+    for (const rate of Array.from(this.yearlyRates.values())) {
+      if (rate.userId === userId && rate.year === year) {
+        return rate;
+      }
+    }
+    return undefined;
+  }
+
+  async createYearlyRate(insertRate: InsertYearlyRate): Promise<YearlyRate> {
+    const id = randomUUID();
+    const rate: YearlyRate = {
+      id,
+      userId: insertRate.userId,
+      year: insertRate.year,
+      mileageRate: insertRate.mileageRate,
+      effectiveDate: insertRate.effectiveDate || null,
+      notes: insertRate.notes || null,
+      createdAt: new Date()
+    };
+    this.yearlyRates.set(id, rate);
+    return rate;
+  }
+
+  async updateYearlyRate(id: string, updates: Partial<YearlyRate>): Promise<YearlyRate | undefined> {
+    const existing = this.yearlyRates.get(id);
+    if (!existing) return undefined;
+    
+    const updated = { ...existing, ...updates };
+    this.yearlyRates.set(id, updated);
+    return updated;
+  }
+
+  async deleteYearlyRate(id: string): Promise<boolean> {
+    return this.yearlyRates.delete(id);
   }
 }
 

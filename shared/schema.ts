@@ -121,6 +121,16 @@ export const apiUsage = pgTable("api_usage", {
   totalCost: real("total_cost").default(0),
 });
 
+export const yearlyRates = pgTable("yearly_rates", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id),
+  year: integer("year").notNull(),
+  mileageRate: real("mileage_rate").notNull(),
+  effectiveDate: timestamp("effective_date"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -165,6 +175,11 @@ export const insertApiUsageSchema = createInsertSchema(apiUsage).omit({
   id: true,
 });
 
+export const insertYearlyRateSchema = createInsertSchema(yearlyRates).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type UpsertUser = z.infer<typeof upsertUserSchema>;
@@ -185,3 +200,5 @@ export type InsertProcessedFile = z.infer<typeof insertProcessedFileSchema>;
 export type ProcessedFile = typeof processedFiles.$inferSelect;
 export type InsertApiUsage = z.infer<typeof insertApiUsageSchema>;
 export type ApiUsage = typeof apiUsage.$inferSelect;
+export type InsertYearlyRate = z.infer<typeof insertYearlyRateSchema>;
+export type YearlyRate = typeof yearlyRates.$inferSelect;
