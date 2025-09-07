@@ -20,6 +20,12 @@ type TabType = 'dashboard' | 'tracking' | 'expenses' | 'schedules' | 'settings';
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState<TabType>('dashboard');
 
+  const handleTabChange = (newTab: TabType) => {
+    setActiveTab(newTab);
+    // Scroll to top when changing main tabs
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   const renderActiveTab = () => {
     switch (activeTab) {
       case 'dashboard':
@@ -58,28 +64,28 @@ export default function Dashboard() {
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="mb-2">
           <DropdownMenuItem
-            onClick={() => setActiveTab('tracking')}
+            onClick={() => handleTabChange('tracking')}
             data-testid="fab-start-trip"
           >
             <MapPin className="w-4 h-4 mr-2" />
             Start Trip
           </DropdownMenuItem>
           <DropdownMenuItem
-            onClick={() => setActiveTab('expenses')}
+            onClick={() => handleTabChange('expenses')}
             data-testid="fab-add-expense"
           >
             <Receipt className="w-4 h-4 mr-2" />
             Add Expense
           </DropdownMenuItem>
           <DropdownMenuItem
-            onClick={() => setActiveTab('expenses')}
+            onClick={() => handleTabChange('expenses')}
             data-testid="fab-scan-receipt"
           >
             <Camera className="w-4 h-4 mr-2" />
             Scan Receipt
           </DropdownMenuItem>
           <DropdownMenuItem
-            onClick={() => setActiveTab('schedules')}
+            onClick={() => handleTabChange('schedules')}
             data-testid="fab-import-schedule"
           >
             <FileUp className="w-4 h-4 mr-2" />
@@ -88,7 +94,7 @@ export default function Dashboard() {
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <BottomNavigation activeTab={activeTab} onTabChange={setActiveTab} />
+      <BottomNavigation activeTab={activeTab} onTabChange={handleTabChange} />
     </div>
   );
 }
