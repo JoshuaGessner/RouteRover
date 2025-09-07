@@ -1220,6 +1220,102 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Download individual receipt image
+  app.get("/api/receipts/:id/download", isAuthenticated, async (req, res) => {
+    try {
+      const receiptId = req.params.id;
+      const userId = getCurrentUserId(req);
+      
+      // Get receipt and verify ownership
+      const receipt = await storage.getReceipt(receiptId);
+      if (!receipt || receipt.userId !== userId) {
+        return res.status(404).json({ message: "Receipt not found" });
+      }
+
+      if (!receipt.imageUrl) {
+        return res.status(404).json({ message: "No image found for this receipt" });
+      }
+
+      // Build file path
+      const filename = path.basename(receipt.imageUrl);
+      const filePath = path.join(process.cwd(), 'uploads', filename);
+      
+      if (!fs.existsSync(filePath)) {
+        return res.status(404).json({ message: "Image file not found" });
+      }
+
+      // Generate a descriptive filename
+      const uploadDate = receipt.uploadDate ? new Date(receipt.uploadDate).toISOString().slice(0, 10) : 'unknown-date';
+      const ext = path.extname(filename);
+      const downloadFilename = `receipt-${uploadDate}-${receiptId.slice(0, 8)}${ext}`;
+
+      // Set headers for download
+      res.setHeader('Content-Disposition', `attachment; filename="${downloadFilename}"`);
+      res.setHeader('Content-Type', 'application/octet-stream');
+      
+      // Send file
+      res.sendFile(filePath);
+    } catch (error) {
+      console.error('Error downloading receipt:', error);
+      res.status(500).json({ message: "Failed to download receipt" });
+    }
+  });
+
+  // Download all receipt images as a zip file
+  app.get("/api/receipts/download-all", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getCurrentUserId(req);
+      const receipts = await storage.getReceipts(userId);
+      
+      if (receipts.length === 0) {
+        return res.status(404).json({ message: "No receipts found" });
+      }
+
+      // Create zip archive
+      const archive = archiver('zip', {
+        zlib: { level: 9 } // Maximum compression
+      });
+      
+      const timestamp = new Date().toISOString().slice(0, 10);
+      const zipFilename = `receipts-${timestamp}.zip`;
+      
+      // Set response headers
+      res.setHeader('Content-Type', 'application/zip');
+      res.setHeader('Content-Disposition', `attachment; filename="${zipFilename}"`);
+      
+      // Pipe archive data to response
+      archive.pipe(res);
+      
+      // Add receipt images to zip
+      let addedFiles = 0;
+      for (const receipt of receipts) {
+        if (receipt.imageUrl) {
+          const filename = path.basename(receipt.imageUrl);
+          const filePath = path.join(process.cwd(), 'uploads', filename);
+          
+          if (fs.existsSync(filePath)) {
+            const uploadDate = receipt.uploadDate ? new Date(receipt.uploadDate).toISOString().slice(0, 10) : 'unknown-date';
+            const ext = path.extname(filename);
+            const zipEntryName = `receipt-${uploadDate}-${receipt.id.slice(0, 8)}${ext}`;
+            
+            archive.file(filePath, { name: zipEntryName });
+            addedFiles++;
+          }
+        }
+      }
+      
+      if (addedFiles === 0) {
+        return res.status(404).json({ message: "No receipt images found" });
+      }
+      
+      // Finalize the archive
+      archive.finalize();
+    } catch (error) {
+      console.error('Error downloading receipts:', error);
+      res.status(500).json({ message: "Failed to download receipts" });
+    }
+  });
+
   app.put("/api/receipts/:id", async (req, res) => {
     try {
       const receiptId = req.params.id;
