@@ -757,7 +757,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Export schedule data for IRS reporting
-  app.get("/api/export/schedule", async (req, res) => {
+  app.get("/api/export/schedule", isAuthenticated, async (req, res) => {
     try {
       const userId = getCurrentUserId(req);
       const scheduleEntries = await storage.getScheduleEntries(userId);
@@ -808,14 +808,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
       
       res.send(excelBuffer);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Schedule export error:', error);
-      res.status(500).json({ message: 'Failed to export schedule data' });
+      res.status(500).json({ message: 'Failed to export schedule data', error: error.message });
     }
   });
 
   // Export routes data for IRS reporting
-  app.get("/api/export/routes", async (req, res) => {
+  app.get("/api/export/routes", isAuthenticated, async (req, res) => {
     try {
       const userId = getCurrentUserId(req);
       const trips = await storage.getTrips(userId);
