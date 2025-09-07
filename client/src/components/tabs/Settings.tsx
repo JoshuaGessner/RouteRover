@@ -307,8 +307,16 @@ export function SettingsTab() {
     }
   };
 
-  const handleLogout = () => {
-    window.location.href = '/api/logout';
+  const handleLogout = async () => {
+    try {
+      await apiRequest("POST", "/api/logout");
+      // Redirect to home page after successful logout
+      window.location.href = '/';
+    } catch (error) {
+      console.error('Logout failed:', error);
+      // Still redirect even if logout fails to clear local state
+      window.location.href = '/';
+    }
   };
 
   const apiUsagePercentage = 49.88; // Mock data
